@@ -22,11 +22,11 @@ jobs:
           dotnet-version: '9.0.x'
 
       # ADAPT: set project_dir to where your csproj lives
-      # If your project file is at backend/src/WebAPI/WebAPI.csproj use that path.
-      # If it's at backend/WebAPI.csproj change PROJECT_DIR accordingly.
+      # If your project file is at backend/src/FinServe.Api/FinServe.Api.csproj use that path.
+      # If it's at backend/FinServe.Api.csproj change PROJECT_DIR accordingly.
       - name: Publish Self-Contained Build
         run: |
-          PROJECT_DIR="backend/src/WebAPI"
+          PROJECT_DIR="backend/src/FinServe.Api"
           OUT_DIR="backend/publish"
           echo "Publishing from $PROJECT_DIR to $OUT_DIR"
           dotnet restore "$PROJECT_DIR"

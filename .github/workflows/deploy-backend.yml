@@ -28,7 +28,7 @@ jobs:
     - name: Publish Backend (Single-file)
       run: |
         echo "Publishing..."
-        dotnet publish ./backend/src/WebAPI/WebAPI.csproj \
+        dotnet publish ./backend/src/FinServe.Api/FinServe.Api.csproj \
           -c Release \
           -o publish \
           -r linux-x64 \
@@ -80,7 +80,7 @@ jobs:
           echo "Extracting new build..."
           sudo tar -xzf /home/ec2-user/publish.tar.gz -C /home/ec2-user/FinServeApi --overwrite
 
-          sudo chmod +x /home/ec2-user/FinServeApi/WebAPI || true
+          sudo chmod +x /home/ec2-user/FinServeApi/FinServe.Api || true
           sudo chown -R ec2-user:ec2-user /home/ec2-user/FinServeApi
           sudo chmod -R 755 /home/ec2-user/FinServeApi
 
