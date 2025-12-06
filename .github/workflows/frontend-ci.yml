@@ -27,17 +27,17 @@ jobs:
 
       # Step 3: Install dependencies
       - name: Install dependencies
-        working-directory: frontend
+        working-directory: frontend/webapp
         run: npm ci
 
       # Step 4: Build Next.js (generates frontend/out automatically)
       - name: Build Frontend
-        working-directory: frontend
+        working-directory: frontend/webapp
         run: npm run build
 
       # Step 5: Optional - preview build (can be removed if not needed)
       #- name: Preview static site
-      #  working-directory: frontend
+      #  working-directory: frontend/webapp
       #  run: npx serve out &
 
       # Step 6: Upload the static build artifact
@@ -45,5 +45,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: frontend/out
+          path: frontend/webapp/out
           retention-days: 7
