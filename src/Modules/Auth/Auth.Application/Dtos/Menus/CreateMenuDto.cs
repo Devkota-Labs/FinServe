@@ -1,3 +1,0 @@
-﻿namespace Auth.Application.Dtos.Menus;
-
-public sealed record CreateMenuDto(string Name, int? ParentMenuId, string? Route, string? Icon, int Order);
