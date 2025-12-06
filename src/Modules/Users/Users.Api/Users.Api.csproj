@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Shared.Security\Shared.Security.csproj" />
+    <ProjectReference Include="..\Users.Application\Users.Application.csproj" />
+  </ItemGroup>
+</Project>

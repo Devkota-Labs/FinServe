@@ -1,0 +1,1 @@
+import { useEffect, useState } from 'react'; import api from '../../services/api'; export default function Users(){ const [users,setUsers]=useState([]); useEffect(()=>{ api.get('/api/admin/users').then(r=>setUsers(r.data)).catch(()=>{}); },[]); return <div style={{padding:20}}><h3>Users</h3><ul>{users.map(u=> <li key={u.id}>{u.email} - {u.roles?.join(',')}</li>)}</ul></div>; }

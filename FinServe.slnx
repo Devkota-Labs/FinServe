@@ -1,0 +1,114 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Release" />
+    <BuildType Name="ReleaseLinux" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path="AssemblyInfo.cs" />
+    <File Path="BannedSymbols.txt" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/FinServe.Api/FinServe.Api.csproj">
+      <Platform Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Admin/">
+    <Project Path="src/Modules/Admin/Admin.Api/Admin.Api.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Modules/Admin/Admin.Application/Admin.Application.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Modules/Admin/Admin.Domain/Admin.Domain.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Modules/Admin/Admin.Infrastructure/Admin.Infrastructure.csproj">
+      <Platform Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/src/Modules/Auth/">
+    <Project Path="src/Modules/Auth/Auth.Api/Auth.Api.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Modules/Auth/Auth.Application/Auth.Application.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Modules/Auth/Auth.Domain/Auth.Domain.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Modules/Auth/Auth.Infrastructure/Auth.Infrastructure.csproj">
+      <Platform Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/src/Modules/Location/">
+    <Project Path="src/Modules/Location/Location.Api/Location.Api.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Modules/Location/Location.Application/Location.Application.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Modules/Location/Location.Domain/Location.Domain.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Modules/Location/Location.Infrastructure/Location.Infrastructure.csproj">
+      <Platform Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/src/Modules/Notification/">
+    <Project Path="src/Modules/Notification/Notification.Api/Notification.Api.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Modules/Notification/Notification.Application/Notification.Application.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Modules/Notification/Notification.Domain/Notification.Domain.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Modules/Notification/Notification.Infrastructure/Notification.Infrastructure.csproj">
+      <Platform Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/src/Modules/Users/">
+    <Project Path="src/Modules/Users/Users.Api/Users.Api.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Modules/Users/Users.Application/Users.Application.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Modules/Users/Users.Domain/Users.Domain.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Modules/Users/Users.Infrastructure/Users.Infrastructure.csproj">
+      <Platform Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/Shared.Application/Shared.Application.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Shared/Shared.Common/Shared.Common.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Shared/Shared.Domain/Shared.Domain.csproj" Id="92206177-c5ac-494a-abd7-fee74e34b303">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Shared/Shared.Infrastructure/Shared.Infrastructure.csproj" Id="add07145-0b1a-4dd9-8150-bf72318dea5f">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Shared/Shared.Kernel/Shared.Kernel.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Shared/Shared.Logging/Shared.Logging.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="src/Shared/Shared.Security/Shared.Security.csproj">
+      <Platform Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/tests/" />
+</Solution>

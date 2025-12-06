@@ -1,0 +1,2 @@
+import { Outlet, Link } from 'react-router-dom';
+export default function AdminLayout(){ return (<div><h1>Admin</h1><nav><Link to='/admin'>Dashboard</Link> | <Link to='/admin/users'>Users</Link></nav><Outlet/></div>); }

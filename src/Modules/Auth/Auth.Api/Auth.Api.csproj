@@ -1,0 +1,6 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\FinServe.Api\FinServe.Api.csproj" />
+    <ProjectReference Include="..\Auth.Application\Auth.Application.csproj" />
+  </ItemGroup>
+</Project>

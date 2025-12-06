@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  api:
+    build: ./src/FinServe.Api
+    ports:
+      - "5000:80"
+  web:
+    build: ./frontend/webapp
+    ports:
+      - "5173:5173"
