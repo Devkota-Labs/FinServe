@@ -1,0 +1,9 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/page": "app/page.js",
+  "/login/page": "app/login/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/admin/dashboard/user-management/approve-user/page": "app/admin/dashboard/user-management/approve-user/page.js",
+  "/admin/dashboard/app-management/add-module/page": "app/admin/dashboard/app-management/add-module/page.js",
+  "/admin/dashboard/app-management/add-activity/page": "app/admin/dashboard/app-management/add-activity/page.js"
+}
