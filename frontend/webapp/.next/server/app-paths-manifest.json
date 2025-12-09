@@ -1,18 +1,18 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/profile/page": "app/profile/page.js",
   "/forgot-password/page": "app/forgot-password/page.js",
   "/page": "app/page.js",
-  "/register/page": "app/register/page.js",
   "/login/page": "app/login/page.js",
-  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/profile/page": "app/profile/page.js",
+  "/register/page": "app/register/page.js",
   "/admin/masters/countries/page": "app/admin/masters/countries/page.js",
-  "/admin/masters/cities/page": "app/admin/masters/cities/page.js",
-  "/admin/user-management/assign-roles/page": "app/admin/user-management/assign-roles/page.js",
-  "/admin/masters/states/page": "app/admin/masters/states/page.js",
   "/admin/masters/roles/page": "app/admin/masters/roles/page.js",
-  "/admin/user-management/unlock-user/page": "app/admin/user-management/unlock-user/page.js",
+  "/admin/masters/cities/page": "app/admin/masters/cities/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/admin/masters/states/page": "app/admin/masters/states/page.js",
   "/admin/masters/menus/page": "app/admin/masters/menus/page.js",
+  "/admin/user-management/all-users/page": "app/admin/user-management/all-users/page.js",
   "/admin/user-management/approve-user/page": "app/admin/user-management/approve-user/page.js",
-  "/admin/user-management/all-users/page": "app/admin/user-management/all-users/page.js"
+  "/admin/user-management/unlock-user/page": "app/admin/user-management/unlock-user/page.js",
+  "/admin/user-management/assign-roles/page": "app/admin/user-management/assign-roles/page.js"
 }
