@@ -107,8 +107,8 @@ jobs:
             sudo mkdir -p /home/ec2-user/tmp_publish
             sudo tar -xzf /home/ec2-user/publish.tar.gz -C /home/ec2-user/tmp_publish --overwrite
 
-            echo "Replacing old files..."
-            sudo rsync -a --exclude 'appsettings*.json' /home/ec2-user/tmp_publish/ /home/ec2-user/FinServeApi/
+            echo "Replacing old files with latest build..."
+            sudo rsync -a --delete --exclude 'appsettings*.json' /home/ec2-user/tmp_publish/ /home/ec2-user/FinServeApi/
 
             sudo chmod +x /home/ec2-user/FinServeApi/FinServe.Api || true
             sudo chown -R ec2-user:ec2-user /home/ec2-user/FinServeApi
