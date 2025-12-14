@@ -4,109 +4,57 @@ using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using Shared.Application.Api;
 using Users.Application.Dtos.Menu;
-using Users.Application.Interfaces.Repositories;
-using Users.Domain.Entities;
+using Users.Application.Interfaces.Services;
 
 namespace Users.Api.Controllers;
 
 [ApiVersion("1.0")]
-//[Authorize]
-//[Authorize(Roles = "Admin")]
-public sealed class MenusController(ILogger logger, IMenuRepository MenuRepository) : BaseApiController(logger.ForContext<MenusController>())
+[Authorize]
+[Authorize(Roles = "Admin")]
+public sealed class MenusController(ILogger logger, IMenuService menuService)
+    : BaseApiController(logger.ForContext<MenusController>())
 {
-    private readonly IMenuRepository _menuRepository = MenuRepository;
-
-    private MenuDto MapToDto(Menu menu) =>
-        new(menu.Id, menu.Name, menu.Icon, menu.Route, menu.Sequence);
-
     [HttpGet]
-    public async Task<IActionResult> Get()
+    public async Task<IActionResult> Get(CancellationToken cancellationToken)
     {
-        var data = await _menuRepository.GetAllAsync().ConfigureAwait(false);
+        var serviceResponse = await menuService.GetAllAsync(cancellationToken).ConfigureAwait(false);
 
-        var menus = data.Select(MapToDto);
-
-        return Ok(menus);
+        return FromResult(serviceResponse);
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> Get(int id)
+    public async Task<IActionResult> Get(int id, CancellationToken cancellationToken)
     {
-        var menu = await _menuRepository.GetByIdAsync(id).ConfigureAwait(false);
+        var serviceResponse = await menuService.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
-        if (menu == null)
-            return NotFound($"Menu not found with id {id}");
-
-        return Ok(MapToDto(menu));
+        return FromResult(serviceResponse);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post(CreateMenuDto dto)
+    public async Task<IActionResult> Post(CreateMenuDto dto, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(dto);
 
-        var exists = await _menuRepository.GetByNameAsync(dto.Name).ConfigureAwait(false);
+        var serviceResponse = await menuService.CreateAsync(dto, cancellationToken).ConfigureAwait(false);
 
-        if (exists is not null)
-        {
-            return BadRequest($"Menu with name {exists.Name} already exists.");
-        }
-
-        var menu = new Menu
-        {
-            Name = dto.Name,
-            ParentId = dto.ParentMenuId,
-            Route = dto.Route,
-            Icon = dto.Icon,
-            Sequence = dto.Order
-        };
-
-        await _menuRepository.AddAsync(menu).ConfigureAwait(false);
-
-        return Created("Menu created.", MapToDto(menu));
+        return FromResult(serviceResponse);
     }
 
     [HttpPatch("{id}")]
-    public async Task<IActionResult> Put(int id, UpdateMenuDto dto)
+    public async Task<IActionResult> Put(int id, UpdateMenuDto dto, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(dto);
 
-        var menu = await _menuRepository.GetByIdAsync(id).ConfigureAwait(false);
+        var serviceResponse = await menuService.UpdateAsync(id, dto, cancellationToken).ConfigureAwait(false);
 
-        if (menu == null)
-            return NotFound($"Menu not found with id {id}");
-
-        if (dto.Name is not null)
-        {
-            var exists = await _menuRepository.GetByNameAsync(dto.Name).ConfigureAwait(false);
-
-            if (exists is not null)
-            {
-                return BadRequest($"Menu with name {exists.Name} already exists.");
-            }
-
-            menu.Name = dto.Name;
-        }
-        if (dto.ParentMenuId is not null) menu.ParentId = dto.ParentMenuId;
-        if (dto.Route is not null) menu.Route = dto.Route;
-        if (dto.Icon is not null) menu.Icon = dto.Icon;
-        if (dto.Order is not null) menu.Sequence = dto.Order.Value;
-
-        await _menuRepository.UpdateAsync(menu).ConfigureAwait(false);
-
-        return Ok("Menu updated.", MapToDto(menu));
+        return FromResult(serviceResponse);
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        var menu = await _menuRepository.GetByIdAsync(id).ConfigureAwait(false);
+        var serviceResponse = await menuService.DeleteAsync(id, cancellationToken).ConfigureAwait(false);
 
-        if (menu == null)
-            return NotFound($"Menu not found with id {id}");
-
-        await _menuRepository.DeleteAsync(menu).ConfigureAwait(false);
-
-        return Ok("Menu deleted.", MapToDto(menu));
+        return FromResult(serviceResponse);
     }
 }

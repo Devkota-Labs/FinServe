@@ -3,9 +3,9 @@ using Shared.Common.Configurations;
 
 namespace Shared.Common.Services;
 
-public abstract class BaseService
+public abstract class BaseService : IBaseService
 {
-    protected ILogger Logger { get; }
+    public ILogger Logger { get; }
 
     public string Name { get; set; }
     protected BaseService(ILogger logger, BaseServiceConfig? baseServiceConfig)

@@ -25,7 +25,12 @@ public abstract class BaseDbContextFactory<TContext> : IDesignTimeDbContextFacto
 
         // 3. Create DbContext options
         var builder = new DbContextOptionsBuilder<TContext>();
-        builder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+        builder.UseMySql(connectionString, 
+            ServerVersion.AutoDetect(connectionString), 
+            mySqlOptions =>
+            {
+                mySqlOptions.EnableRetryOnFailure();
+            });
 
         return CreateNewInstance(builder.Options);
     }

@@ -1,41 +1,97 @@
-﻿//using Location.Application.Interfaces.Repositories;
-//using Location.Domain;
+﻿using Location.Application.Dtos;
+using Location.Application.Interfaces.Repositories;
+using Location.Application.Interfaces.Services;
+using Location.Domain.Entities;
+using Serilog;
+using Shared.Application.Results;
+using Shared.Common.Services;
 
-//namespace Location.Application.Services
-//{
-//    public class CountryService
-//    {
-//        private readonly ICountryRepository _countries;
+namespace Location.Application.Services;
 
-//        public CountryService(ICountryRepository countries)
-//        {
-//            _countries = countries;
-//        }
+internal sealed class CountryService(ILogger logger, ICountryRepository repo)
+    : BaseService(logger.ForContext<CountryService>(), null), ICountryService
+{
+    public async Task<Result<ICollection<CountryDto>>> GetAllAsync(CancellationToken cancellationToken)
+    {
+        var entities = await repo.GetAllAsync(cancellationToken).ConfigureAwait(false);
 
-//        public Task<List<Country>> GetAllAsync()
-//            => _countries.GetAllAsync();
+        var result = entities.Select(Map).ToList();
 
-//        public Task<Country?> GetByIdAsync(int id)
-//            => _countries.GetByIdAsync(id);
+        return Result<ICollection<CountryDto>>.Ok(result);
+    }
 
-//        public Task<Country?> GetByName(int id)
-//            => _countries.GetByIdAsync(id);
+    public async Task<Result<CountryDto?>> GetByIdAsync(int id, CancellationToken cancellationToken)
+    {
+        var entities = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
-//        public async Task AddAsync(string name, string iso, string code)
-//        {
-//            var country = new Country
-//            {
-//                Name = name,
-//                IsoCode = iso,
-//                MobileCode = code,
-//                CreatedTime = DateTime.UtcNow,
-//                LastUpdatedTime = DateTime.UtcNow
-//            };
+        if (entities == null)
+            return Result<CountryDto?>.Fail("Country not found");
 
-//            await _countries.AddAsync(country);
-//        }
+        return Result<CountryDto?>.Ok(Map(entities));
+    }
 
-//        public Task<bool> ExistsAsync(int id)
-//            => _countries.ExistsAsync(id);
-//    }
-//}
+    public async Task<Result<CountryDto>> CreateAsync(CreateCountryDto dto, CancellationToken cancellationToken)
+    {
+        var entity = await repo.GetByNameAsync(dto.Name, cancellationToken).ConfigureAwait(false);
+
+        if (entity is not null)
+        {
+            return Result<CountryDto>.Fail($"Country with name {entity.Name} already exists.");
+        }
+
+        var newEntity = new Country
+        {
+            Name = dto.Name,
+            IsoCode = dto.IsoCode,
+            MobileCode = dto.MobileCode
+        };
+
+        await repo.AddAsync(newEntity, cancellationToken).ConfigureAwait(false);
+
+        return Result<CountryDto>.Ok("Country created successfully.", Map(newEntity));
+    }
+
+    public async Task<Result<CountryDto>> UpdateAsync(int id, UpdateCountryDto dto, CancellationToken cancellationToken)
+    {
+        var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
+
+        if (entity == null)
+            return Result<CountryDto>.Fail("Country not found.");
+
+        if (dto.Name is not null)
+        {
+            var exists = await repo.GetByNameAsync(dto.Name, cancellationToken).ConfigureAwait(false);
+
+            if (exists is not null)
+            {
+                return Result<CountryDto>.Fail($"Country with name {exists.Name} already exists.");
+            }
+
+            entity.Name = dto.Name;
+        }
+
+        if (dto.IsoCode is not null) entity.IsoCode = dto.IsoCode;
+        if (dto.MobileCode is not null) entity.MobileCode = dto.MobileCode;
+
+        await repo.UpdateAsync(entity, cancellationToken).ConfigureAwait(false);
+
+        return Result<CountryDto>.Ok("Country updated successfully", Map(entity));
+    }
+
+    public async Task<Result<CountryDto>> DeleteAsync(int id, CancellationToken cancellationToken)
+    {
+        var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
+
+        if (entity == null)
+            return Result<CountryDto>.Fail("Country not found.");
+
+        await repo.DeleteAsync(entity, cancellationToken).ConfigureAwait(false);
+
+        return Result<CountryDto>.Ok("Country deleted successfully.", Map(entity));
+    }
+
+    private static CountryDto Map(Country country)
+    {
+        return new(country.Id, country.Name, country.IsoCode, country.MobileCode);
+    }
+}

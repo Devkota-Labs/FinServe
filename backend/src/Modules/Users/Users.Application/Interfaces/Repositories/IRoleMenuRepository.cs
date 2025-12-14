@@ -1,8 +1,8 @@
-﻿using Shared.Application.Interfaces;
-using Users.Domain.Entities;
+﻿//using Shared.Application.Interfaces;
+//using Users.Domain.Entities;
 
-namespace Users.Application.Interfaces.Repositories;
+//namespace Users.Application.Interfaces.Repositories;
 
-public interface IRoleMenuRepository : IRepository<RoleMenu>
-{
-}
+//public interface IRoleMenuRepository : IMasterRepository<RoleMenu>
+//{
+//}

@@ -1,2 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\Auth\Auth.Application\Auth.Application.csproj" />
+  </ItemGroup>
 </Project>

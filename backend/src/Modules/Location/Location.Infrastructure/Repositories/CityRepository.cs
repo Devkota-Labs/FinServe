@@ -9,12 +9,12 @@ internal sealed class CityRepository(LocationDbContext db) : ICityRepository
 {
     private readonly LocationDbContext _db = db;
 
-    public async Task<bool> ExistsAsync(int id)
+    public async Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
     {
-        return await _db.Cities.AnyAsync(x => x.Id == id).ConfigureAwait(false);
+        return await _db.Cities.AnyAsync(x => x.Id == id, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<List<City>> GetAllAsync()
+    public async Task<List<City>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _db.Cities
             .AsNoTracking()
@@ -23,55 +23,55 @@ internal sealed class CityRepository(LocationDbContext db) : ICityRepository
             .OrderBy(x => x.State.CountryId)
             .ThenBy(x => x.StateId)
             .ThenBy(x => x.Name)
-            .ToListAsync().ConfigureAwait(false);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<City?> GetByIdAsync(int id)
+    public async Task<City?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         return await _db.Cities
             .AsNoTracking()
             .Include(c => c.State.Country)
             .Include(c => c.State)
-            .FirstOrDefaultAsync(x => x.Id == id)
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
             .ConfigureAwait(false);
     }
 
-    public async Task<City?> GetByNameAsync(string name)
+    public async Task<City?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
     {
         return await _db.Cities
             .AsNoTracking()
             .Include(c => c.State.Country)
             .Include(c => c.State)
-            .FirstOrDefaultAsync(x => x.Name == name)
+            .FirstOrDefaultAsync(x => x.Name == name, cancellationToken)
             .ConfigureAwait(false);
     }
 
-    public async Task<List<City>?> GetByStateAsync(int stateId)
+    public async Task<List<City>?> GetByStateAsync(int stateId, CancellationToken cancellationToken = default)
     {
         return await _db.Cities
             .AsNoTracking()
             .Include(c => c.State.Country)
             .Include(c => c.State)
             .Where(x => x.StateId == stateId)
-            .ToListAsync()
+            .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
     }
 
-    public async Task AddAsync(City city)
+    public async Task AddAsync(City city, CancellationToken cancellationToken = default)
     {
-        await _db.Cities.AddAsync(city).ConfigureAwait(false);
-        await _db.SaveChangesAsync().ConfigureAwait(false);
+        await _db.Cities.AddAsync(city,cancellationToken).ConfigureAwait(false);
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task UpdateAsync(City city)
+    public async Task UpdateAsync(City city, CancellationToken cancellationToken = default)
     {
         _db.Cities.Update(city);
-        await _db.SaveChangesAsync().ConfigureAwait(false);
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task DeleteAsync(City city)
+    public async Task DeleteAsync(City city, CancellationToken cancellationToken = default)
     {
         _db.Cities.Remove(city);
-        await _db.SaveChangesAsync().ConfigureAwait(false);
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 }

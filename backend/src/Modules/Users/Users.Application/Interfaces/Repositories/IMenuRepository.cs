@@ -3,6 +3,7 @@ using Users.Domain.Entities;
 
 namespace Users.Application.Interfaces.Repositories;
 
-public interface IMenuRepository : IRepository<Menu>
+public interface IMenuRepository : IMasterRepository<Menu>
 {
+    Task<ICollection<Menu>?> GetByUserIdAsync(int userId, CancellationToken cancellationToken = default);
 }

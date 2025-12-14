@@ -9,47 +9,47 @@ internal sealed class CountryRepository(LocationDbContext db) : ICountryReposito
 {
     private readonly LocationDbContext _db = db;
 
-    public async Task<bool> ExistsAsync(int id)
+    public async Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
     {
-        return await _db.Countries.AnyAsync(x => x.Id == id).ConfigureAwait(false);
+        return await _db.Countries.AnyAsync(x => x.Id == id, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<List<Country>> GetAllAsync()
+    public async Task<List<Country>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _db.Countries
             .AsNoTracking()
             .OrderBy(x => x.Name)
-            .ToListAsync().ConfigureAwait(false);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
     }
-    public async Task<Country?> GetByIdAsync(int id)
+    public async Task<Country?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         return await _db.Countries
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<Country?> GetByNameAsync(string name)
+    public async Task<Country?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
     {
         return await _db.Countries
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Name == name).ConfigureAwait(false);
+            .FirstOrDefaultAsync(x => x.Name == name, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task AddAsync(Country country)
+    public async Task AddAsync(Country country, CancellationToken cancellationToken = default)
     {
-        await _db.Countries.AddAsync(country).ConfigureAwait(false);
-        await _db.SaveChangesAsync().ConfigureAwait(false);
+        await _db.Countries.AddAsync(country, cancellationToken).ConfigureAwait(false);
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task UpdateAsync(Country country)
+    public async Task UpdateAsync(Country country, CancellationToken cancellationToken = default)
     {
         _db.Countries.Update(country);
-        await _db.SaveChangesAsync().ConfigureAwait(false);
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task DeleteAsync(Country country)
+    public async Task DeleteAsync(Country country, CancellationToken cancellationToken = default)
     {
         _db.Countries.Remove(country);
-        await _db.SaveChangesAsync().ConfigureAwait(false);
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 }

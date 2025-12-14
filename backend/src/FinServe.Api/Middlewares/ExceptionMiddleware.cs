@@ -1,43 +1,36 @@
-﻿using Serilog;
-using Shared.Application.Responses;
-using System.Net;
+﻿using Shared.Application.Responses;
+using Shared.Application.Results;
+using Shared.Common.Services;
 using System.Text.Json;
 
 namespace FinServe.Api.Middlewares;
 
-internal sealed class ExceptionMiddleware(RequestDelegate next)
+internal sealed class ExceptionMiddleware(Serilog.ILogger logger, RequestDelegate next)
+    : BaseService(logger.ForContext<ExceptionMiddleware>(), null)
 {
-    private readonly RequestDelegate _next = next;
-    private readonly Serilog.ILogger _logger = Log.ForContext<ExceptionMiddleware>();
-
     public async Task InvokeAsync(HttpContext httpContext)
     {
         try
         {
-            await _next(httpContext).ConfigureAwait(false);
+            await next(httpContext).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Unhandled exception");
+            Logger.Error(ex, "Unhandled exception");
             await HandleExceptionAsync(httpContext, ex).ConfigureAwait(false);
         }
     }
 
     private static async Task HandleExceptionAsync(HttpContext context, Exception ex)
     {
-        var statusCode = HttpStatusCode.InternalServerError;
+        if (context.Response.HasStarted)
+            throw ex;
 
-        var response = new ApiResponse<string>(
-            statusCode,
-            "An unexpected error occurred",
-            ex.Message
-        );
+        var result = Result.Fail("An unexpected error occurred.", "SERVER_ERROR");
+        var response = ApiResponse.FromResult(result);
 
-        context.Response.StatusCode = (int)statusCode;
+        context.Response.StatusCode = 500;
         context.Response.ContentType = "application/json";
-
-        var json = JsonSerializer.Serialize(response);
-
-        await context.Response.WriteAsync(json).ConfigureAwait(false);
+        await context.Response.WriteAsync(JsonSerializer.Serialize(response)).ConfigureAwait(false);
     }
 }

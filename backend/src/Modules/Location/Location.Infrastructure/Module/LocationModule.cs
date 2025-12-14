@@ -1,4 +1,5 @@
-﻿using Location.Application.Interfaces.Repositories;
+﻿using Location.Application;
+using Location.Application.Interfaces.Repositories;
 using Location.Infrastructure.Db;
 using Location.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Builder;
@@ -23,6 +24,8 @@ public static class LocationModule
         services.AddScoped<ICountryRepository, CountryRepository>();
         services.AddScoped<IStateRepository, StateRepository>();
         services.AddScoped<ICityRepository, CityRepository>();
+
+        services.AddLocationApplication();
 
         return services;
     }

@@ -1,6 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="..\..\..\FinServe.Api\FinServe.Api.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc" />
+    <PackageReference Include="Asp.Versioning.Mvc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Shared.Application\Shared.Application.csproj" />
     <ProjectReference Include="..\Auth.Application\Auth.Application.csproj" />
   </ItemGroup>
 </Project>

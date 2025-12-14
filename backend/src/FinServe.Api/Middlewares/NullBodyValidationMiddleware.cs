@@ -1,12 +1,10 @@
 ﻿using Shared.Application.Responses;
-using System.Net;
+using Shared.Application.Results;
 
 namespace FinServe.Api.Middlewares;
 
 internal sealed class NullBodyValidationMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next = next;
-
     public async Task InvokeAsync(HttpContext context)
     {
         // Only validate JSON POST/PUT/PATCH
@@ -23,13 +21,13 @@ internal sealed class NullBodyValidationMiddleware(RequestDelegate next)
 
             if (string.IsNullOrWhiteSpace(body))
             {
-                var response = new ApiResponse<string>(HttpStatusCode.BadRequest, "Request body cannot be null or empty.");
+                var response = ApiResponse.FromResult(Result.Fail("Request body cannot be null or empty."));
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 await context.Response.WriteAsJsonAsync(response).ConfigureAwait(false);
                 return;
             }
         }
 
-        await _next(context).ConfigureAwait(false);
+        await next(context).ConfigureAwait(false);
     }
 }

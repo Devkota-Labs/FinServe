@@ -3,7 +3,7 @@ using Shared.Application.Interfaces;
 
 namespace Location.Application.Interfaces.Repositories;
 
-public interface IStateRepository : IRepository<State>
+public interface IStateRepository : IMasterRepository<State>
 {
-    Task<List<State>?> GetByCountryAsync(int countryId);
+    Task<List<State>?> GetByCountryAsync(int countryId, CancellationToken cancellationToken = default);
 }

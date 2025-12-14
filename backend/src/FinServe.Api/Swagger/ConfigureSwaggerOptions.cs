@@ -7,12 +7,10 @@ namespace FinServe.Api.Swagger;
 
 internal sealed class ConfigureSwaggerOptions(IApiVersionDescriptionProvider provider) : IConfigureOptions<SwaggerGenOptions>
 {
-    private readonly IApiVersionDescriptionProvider _provider = provider;
-
     public void Configure(SwaggerGenOptions options)
     {
         // Loop through API versions and create a Swagger document per version
-        foreach (var description in _provider.ApiVersionDescriptions)
+        foreach (var description in provider.ApiVersionDescriptions)
         {
             options.SwaggerDoc(
                 description.GroupName,
@@ -21,7 +19,7 @@ internal sealed class ConfigureSwaggerOptions(IApiVersionDescriptionProvider pro
                     Title = "FinServe API",
                     Version = description.ApiVersion.ToString(),
                     Description = description.IsDeprecated
-                        ? "⚠️ This API version is deprecated."
+                        ? "This API version is deprecated."
                         : "FinServe REST API"
                 }
             );

@@ -10,7 +10,8 @@ using Shared.Common;
 
 namespace Shared.Security;
 
-internal sealed class JwtTokenGenerator(ILogger logger, IOptions<JwtOptions> jwtOptions) : BaseService(logger.ForContext<JwtTokenGenerator>(), jwtOptions.Value), IJwtTokenGenerator
+internal sealed class JwtTokenGenerator(ILogger logger, IOptions<JwtOptions> jwtOptions) 
+    : BaseService(logger.ForContext<JwtTokenGenerator>(), jwtOptions.Value), IJwtTokenGenerator
 {
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
 

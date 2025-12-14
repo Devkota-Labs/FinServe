@@ -13,6 +13,7 @@ internal static class UserSeeder
         var adminUser = new User
         {
             Id = 1,
+            UserName = "Admin",
             Email = "admin@finserve.com",
             Mobile = "9999999999",
             Gender = Gender.PerferNotToSay,
@@ -30,7 +31,7 @@ internal static class UserSeeder
             EmailVerified = true,
             MobileVerified = true,
             // Hash Password
-            PasswordHash = "AMjWYtPmGZURetbp6dI1r3XfmgZy0nrn7FU7te333XPDv3gqwQzRZNtcoka4Sow++Q==",
+            PasswordHash = "AENIe4W4SbJh10PQDlXCrz7vyJmLQulPRIuFhXqE+p41Pf0DRGhLa+CDx6EkNjHfhg==",
             PasswordLastChanged = seedTime,
             CreatedTime = seedTime,
             CreatedBy = "Admin"

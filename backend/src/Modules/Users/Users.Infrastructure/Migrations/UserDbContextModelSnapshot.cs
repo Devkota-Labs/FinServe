@@ -77,7 +77,7 @@ namespace Users.Infrastructure.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.ToTable("tbl_User_Menus", (string)null);
+                    b.ToTable("tbl_Users_Menus", (string)null);
 
                     b.HasData(
                         new
@@ -289,7 +289,7 @@ namespace Users.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("tbl_User_Roles", (string)null);
+                    b.ToTable("tbl_Users_Roles", (string)null);
 
                     b.HasData(
                         new
@@ -376,9 +376,10 @@ namespace Users.Infrastructure.Migrations
 
                     b.HasIndex("MenuId");
 
-                    b.HasIndex("RoleId");
+                    b.HasIndex("RoleId", "MenuId")
+                        .IsUnique();
 
-                    b.ToTable("tbl_User_Role_Menus");
+                    b.ToTable("tbl_Users_RoleMenus", (string)null);
                 });
 
             modelBuilder.Entity("Users.Domain.Entities.User", b =>
@@ -514,9 +515,14 @@ namespace Users.Infrastructure.Migrations
                         .HasColumnType("int")
                         .HasColumnName("State_Id");
 
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("User_Name");
+
                     b.HasKey("Id");
 
-                    b.ToTable("tbl_User_Users", (string)null);
+                    b.ToTable("tbl_Users_Users", (string)null);
 
                     b.HasData(
                         new
@@ -540,10 +546,11 @@ namespace Users.Infrastructure.Migrations
                             MfaEnabled = false,
                             Mobile = "9999999999",
                             MobileVerified = true,
-                            PasswordHash = "AMjWYtPmGZURetbp6dI1r3XfmgZy0nrn7FU7te333XPDv3gqwQzRZNtcoka4Sow++Q==",
+                            PasswordHash = "AENIe4W4SbJh10PQDlXCrz7vyJmLQulPRIuFhXqE+p41Pf0DRGhLa+CDx6EkNjHfhg==",
                             PasswordLastChanged = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             PinCode = "400001",
-                            StateId = 1
+                            StateId = 1,
+                            UserName = "Admin"
                         });
                 });
 
@@ -584,9 +591,21 @@ namespace Users.Infrastructure.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "RoleId")
+                        .IsUnique();
 
-                    b.ToTable("tbl_User_User_Roles");
+                    b.ToTable("tbl_Users_UserRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedBy = "Admin",
+                            CreatedTime = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            LastUpdatedTime = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            RoleId = 1,
+                            UserId = 1
+                        });
                 });
 
             modelBuilder.Entity("Users.Domain.Entities.Menu", b =>
@@ -604,13 +623,13 @@ namespace Users.Infrastructure.Migrations
                     b.HasOne("Users.Domain.Entities.Menu", "Menu")
                         .WithMany("RoleMenus")
                         .HasForeignKey("MenuId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Users.Domain.Entities.Role", "Role")
                         .WithMany("RoleMenus")
                         .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Menu");
@@ -623,13 +642,13 @@ namespace Users.Infrastructure.Migrations
                     b.HasOne("Users.Domain.Entities.Role", "Role")
                         .WithMany("UserRoles")
                         .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Users.Domain.Entities.User", "User")
                         .WithMany("UserRoles")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Role");

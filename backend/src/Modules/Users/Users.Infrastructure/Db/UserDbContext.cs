@@ -15,7 +15,7 @@ internal sealed class UserDbContext(DbContextOptions<UserDbContext> options) : B
     {
         base.OnModelCreating(modelBuilder);
 
-        var module = "User";
+        var module = "Users";
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(UserDbContext).Assembly);
 
