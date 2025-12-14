@@ -21,7 +21,7 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        working-directory: Dev/frontend/webapp
+        working-directory: frontend/webapp
         run: |
           if [ -f package-lock.json ]; then
             npm ci
@@ -30,7 +30,7 @@ jobs:
           fi
 
       - name: Build frontend
-        working-directory: Dev/frontend/webapp
+        working-directory: frontend/webapp
         run: npm run build
 
       - name: Configure AWS credentials
