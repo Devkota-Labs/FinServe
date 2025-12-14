@@ -1,1 +1,0 @@
-export default function CustomerDashboard(){ return <div style={{padding:20}}>Customer Dashboard</div>; }

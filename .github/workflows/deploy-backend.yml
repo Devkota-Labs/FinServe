@@ -1,0 +1,127 @@
+name: Deploy Backend CD
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    if: contains(github.event.release.name, '[backend]') || contains(github.event.release.body, '[backend]')
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Debug list repo (optional)
+      run: |
+        echo "PWD: $(pwd)"
+        ls -la
+        echo "backend tree (3 levels):"
+        find backend -maxdepth 4 -print || true
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Publish Backend (Single-file)
+      run: |
+        echo "Publishing..."
+        dotnet publish ./backend/src/FinServe.Api/FinServe.Api.csproj \
+          -c Release \
+          -o publish \
+          -r linux-x64 \
+          --self-contained true \
+          /p:PublishSingleFile=true \
+          /p:IncludeNativeLibrariesForSelfExtract=true \
+          /p:PublishTrimmed=false \
+          /p:TrimMode=Link \
+          /p:DebugType=None \
+          /p:DebugSymbols=false
+
+        echo "Removing appsettings from publish folder..."
+        rm -f publish/appsettings.json || true
+        rm -f publish/appsettings.Development.json || true
+        rm -f publish/appsettings.Production.json || true
+
+        echo "Publish done. publish/ contents:"
+        ls -la publish || true
+
+    - name: Create tarball of publish contents
+      run: |
+        cd publish
+        tar --exclude='appsettings*.json' -czf ../publish.tar.gz .
+        cd ..
+        echo "Created publish.tar.gz with size:"
+        ls -lh publish.tar.gz
+
+    - name: Upload tarball to EC2
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        port: 22
+        source: "publish.tar.gz"
+        target: "/home/ec2-user/"
+
+    - name: Extract on EC2 and restart
+      uses: appleboy/ssh-action@v1.2.0
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          sudo mkdir -p /home/ec2-user/FinServeApi
+          echo "🔴 Stopping backend service to avoid file lock..."
+          sudo systemctl stop finserve || true
+
+          echo "Extracting new build..."
+          sudo tar -xzf /home/ec2-user/publish.tar.gz -C /home/ec2-user/FinServeApi --overwrite
+
+          sudo chmod +x /home/ec2-user/FinServeApi/FinServe.Api || true
+          sudo chown -R ec2-user:ec2-user /home/ec2-user/FinServeApi
+          sudo chmod -R 755 /home/ec2-user/FinServeApi
+
+          sudo rm -f /home/ec2-user/publish.tar.gz
+
+          echo "Restarting service..."
+          sudo systemctl daemon-reload
+          sudo systemctl restart finserve
+          sudo systemctl status finserve --no-pager
+
+    - name: Cleanup local publish tar
+      run: rm -f publish.tar.gz
+
+    - name: Send Email (Success)
+      if: success()
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: ${{ secrets.SMTP_HOST }}
+        server_port: ${{ secrets.SMTP_PORT }}
+        username: ${{ secrets.SMTP_USERNAME }}
+        password: ${{ secrets.SMTP_PASSWORD }}
+        subject: "🚀 Backend Deployment Successful – ${{ github.ref_name }}"
+        to: ${{ secrets.EMAIL_TO }}
+        from: ${{ secrets.SMTP_USERNAME }}
+        body: |
+          Backend deployment completed successfully.
+          Tag: ${{ github.ref_name }}
+          Logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+    - name: Send Email (Failure)
+      if: failure()
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: ${{ secrets.SMTP_HOST }}
+        server_port: ${{ secrets.SMTP_PORT }}
+        username: ${{ secrets.SMTP_USERNAME }}
+        password: ${{ secrets.SMTP_PASSWORD }}
+        subject: "❌ Backend Deployment FAILED – ${{ github.ref_name }}"
+        to: ${{ secrets.EMAIL_TO }}
+        from: ${{ secrets.SMTP_USERNAME }}
+        body: |
+          Backend deployment FAILED.
+          Tag: ${{ github.ref_name }}
+          Check logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
