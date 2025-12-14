@@ -17,7 +17,7 @@ export default function GlobalErrorPage({ error, reset }: any) {
         <AlertTriangle className="text-red-500 w-16 h-16 mx-auto mb-6" />
 
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          Something went wrong
+          Something went wrong 
         </h1>
 
         <p className="text-gray-600 mb-6">
