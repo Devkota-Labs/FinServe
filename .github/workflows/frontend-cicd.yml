@@ -1,0 +1,71 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches:
+      - dev
+      - master
+      - feature/*
+  workflow_dispatch:
+
+# ================================
+# FRONTEND CI
+# ================================
+jobs:
+  frontend-ci:
+    name: Frontend CI (Build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: frontend/webapp/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend/webapp
+        run: npm ci
+
+      - name: Build Frontend
+        working-directory: frontend/webapp
+        run: npm run build
+
+      - name: Upload Frontend Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/webapp/out
+          retention-days: 7
+
+# ================================
+# FRONTEND CD (OPTIONAL)
+# ================================
+  frontend-cd:
+    name: Frontend CD (Approval Required)
+    needs: frontend-ci
+    runs-on: ubuntu-latest
+
+    # 👇 Enable approval from GitHub → Environments
+    environment:
+      name: frontend-production
+      url: https://your-frontend-domain.com
+
+    steps:
+      - name: Download Frontend Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: out
+
+      - name: Deploy Frontend (placeholder)
+        run: |
+          echo "Deploy frontend here"
+          echo "Examples:"
+          echo "- S3 + CloudFront"
+          echo "- Nginx server"
+          echo "- Vercel (if not using GitHub Actions)"
