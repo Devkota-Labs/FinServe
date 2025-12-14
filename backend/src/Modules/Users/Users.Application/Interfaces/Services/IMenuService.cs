@@ -7,5 +7,4 @@ namespace Users.Application.Interfaces.Services;
 
 public interface IMenuService : IService<MenuDto, CreateMenuDto, UpdateMenuDto>
 {
-    Task<Result<ICollection<MenuTreeDto>>> GetUserMenusAsync(int userId, CancellationToken cancellationToken);
 }

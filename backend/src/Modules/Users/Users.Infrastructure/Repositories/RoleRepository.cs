@@ -8,16 +8,14 @@ namespace Users.Infrastructure.Repositories;
 
 internal sealed class RoleRepository(UserDbContext db) : IRoleRepository
 {
-    private readonly UserDbContext _db = db;
-
     public async Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
     {
-        return await _db.Roles.AnyAsync(x => x.Id == id, cancellationToken).ConfigureAwait(false);
+        return await db.Roles.AnyAsync(x => x.Id == id, cancellationToken).ConfigureAwait(false);
     }
     
     public async Task<List<Role>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await _db.Roles
+        return await db.Roles
             .AsNoTracking()
             .Include(r => r.RoleMenus)!
              .ThenInclude(rm => rm.Menu)
@@ -26,7 +24,7 @@ internal sealed class RoleRepository(UserDbContext db) : IRoleRepository
     }
     public async Task<Role?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        return await _db.Roles
+        return await db.Roles
             .AsNoTracking()
             .Include(r => r.RoleMenus)!
              .ThenInclude(rm => rm.Menu)
@@ -36,7 +34,7 @@ internal sealed class RoleRepository(UserDbContext db) : IRoleRepository
 
     public async Task<Role?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
     {
-        return await _db.Roles
+        return await db.Roles
             .AsNoTracking()
             .Include(r => r.RoleMenus)!
              .ThenInclude(rm => rm.Menu)
@@ -46,7 +44,7 @@ internal sealed class RoleRepository(UserDbContext db) : IRoleRepository
 
     public async Task<ICollection<Menu>> GetMenusAsync(int roleId, CancellationToken cancellationToken = default)
     {
-        var role = await _db.Roles
+        var role = await db.Roles
          .AsNoTracking()
          .Include(r => r.RoleMenus)!
              .ThenInclude(rm => rm.Menu)
@@ -58,37 +56,37 @@ internal sealed class RoleRepository(UserDbContext db) : IRoleRepository
     public async Task AssignMenusAsync(int roleId, ICollection<int> menuIds, CancellationToken cancellationToken = default)
     {
         // Remove old assignments
-        var old = _db.RoleMenus.Where(rm => rm.RoleId == roleId);
-        _db.RoleMenus.RemoveRange(old);
+        var old = db.RoleMenus.Where(rm => rm.RoleId == roleId);
+        db.RoleMenus.RemoveRange(old);
 
         // Add new ones
         foreach (var menuId in menuIds)
         {
-            _db.RoleMenus.Add(new RoleMenu
+            db.RoleMenus.Add(new RoleMenu
             {
                 RoleId = roleId,
                 MenuId = menuId
             });
         }
 
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task AddAsync(Role Role, CancellationToken cancellationToken = default)
     {
-        await _db.Roles.AddAsync(Role, cancellationToken).ConfigureAwait(false);
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await db.Roles.AddAsync(Role, cancellationToken).ConfigureAwait(false);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task UpdateAsync(Role Role, CancellationToken cancellationToken = default)
     {
-        _db.Roles.Update(Role);
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        db.Roles.Update(Role);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task DeleteAsync(Role Role, CancellationToken cancellationToken = default)
     {
-        _db.Roles.Remove(Role);
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        db.Roles.Remove(Role);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 }

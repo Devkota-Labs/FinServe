@@ -12,43 +12,6 @@ namespace Users.Application.Services;
 internal sealed class MenuService(ILogger logger, IMenuRepository repo)
     : BaseService(logger.ForContext<MenuService>(), null), IMenuService
 {
-    private List<MenuTreeDto> BuildMenuTree(ICollection<Menu> menus)
-    {
-        var lookup = menus.ToDictionary(m => m.Id, m => new MenuTreeDto(m.Id, m.Name, m.Route ?? "", m.Icon ?? "", m.Sequence)
-        {
-            Id = m.Id,
-            Name = m.Name,
-            Route = m.Route ?? "",
-            Icon = m.Icon ?? "",
-            Order = m.Sequence
-        });
-
-        List<MenuTreeDto> roots = new();
-
-        foreach (var menu in menus)
-        {
-            if (menu.ParentId == null)
-            {
-                // Root menu
-                roots.Add(lookup[menu.Id]);
-            }
-            else if (lookup.ContainsKey(menu.ParentId.Value))
-            {
-                // Child menu
-                lookup[menu.ParentId.Value].Children.Add(lookup[menu.Id]);
-            }
-        }
-
-        // Sort children
-        foreach (var item in lookup.Values)
-        {
-            item.Children = [.. item.Children.OrderBy(c => c.Order)];
-        }
-
-        // Sort roots
-        return [.. roots.OrderBy(r => r.Order)];
-    }
-
     public async Task<Result<ICollection<MenuDto>>> GetAllAsync(CancellationToken cancellationToken)
     {
         var entities = await repo.GetAllAsync(cancellationToken).ConfigureAwait(false);
@@ -66,20 +29,6 @@ internal sealed class MenuService(ILogger logger, IMenuRepository repo)
             return Result<MenuDto?>.Fail("Menu not found");
 
         return Result<MenuDto?>.Ok(Map(entities));
-    }
-
-    public async Task<Result<ICollection<MenuTreeDto>>> GetUserMenusAsync(int userId, CancellationToken cancellationToken)
-    {
-        var menus = await repo.GetByUserIdAsync(userId, cancellationToken).ConfigureAwait(false);
-
-        if (menus is null)
-        {
-            return Result<ICollection<MenuTreeDto>>.Fail($"No menus are assigned to user {userId}.");
-        }
-
-        //4 CONVERT TO TREE
-        var menuTree = BuildMenuTree(menus);
-        return Result<ICollection<MenuTreeDto>>.Ok(menuTree);
     }
 
     public async Task<Result<MenuDto>> CreateAsync(CreateMenuDto dto, CancellationToken cancellationToken)

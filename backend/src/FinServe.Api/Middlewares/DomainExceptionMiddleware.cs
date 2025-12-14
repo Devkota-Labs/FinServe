@@ -6,17 +6,13 @@ using System.Text.Json;
 
 namespace FinServe.Api.Middlewares;
 
-public sealed class DomainExceptionMiddleware
+public sealed class DomainExceptionMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
-
-    public DomainExceptionMiddleware(RequestDelegate next) => _next = next;
-
     public async Task Invoke(HttpContext context)
     {
         try
         {
-            await _next(context).ConfigureAwait(false);
+            await next(context).ConfigureAwait(false);
         }
         catch (DomainException dex)
         {
