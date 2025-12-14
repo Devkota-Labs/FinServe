@@ -3,7 +3,7 @@ import { getAccessToken, setAccessToken, clearAccessToken } from "./auth";
 import { refreshAccessToken } from "./refreshClient";
 import { normalizeHeaders } from "./utils";
 //Base URL
-export const API_BASE_URL = "https://tzrhqvey9d.execute-api.us-east-1.amazonaws.com/prod/api";//"http://54.81.12.127:5005/api";//"https://localhost:5005/api"; //"https://tzrhqvey9d.execute-api.us-east-1.amazonaws.com/prod/api"; //
+export const API_BASE_URL = "https://tzrhqvey9d.execute-api.us-east-1.amazonaws.com/prod/api";//"http://54.81.12.127:5005/api";//;//"https://localhost:5005/api"; //"https://tzrhqvey9d.execute-api.us-east-1.amazonaws.com/prod/api"; //
 
 
 // -----------------------------
@@ -56,11 +56,9 @@ async function request(path: string, options: RequestInit = {}) {
 // EXPORT API METHODS
 // -----------------------------
 export const api = {
-
   /*
          ------------------------------Auth-----------------------------------------
   */
-
   login: (data: any) =>
     request("/Auth/login", {
       method: "POST",
@@ -140,6 +138,10 @@ export const api = {
     request("/admin/pending-users", {
       method: "GET",
     }),
+  getAllUsers: () =>
+    request("/Admin/users", {
+      method: "GET",
+    }),
   /*
        ------------------------------Masters-----------------------------------------
 */
@@ -190,6 +192,14 @@ export const api = {
     request("/Roles", {
       method: "POST",
       body: JSON.stringify(data),
+    }),
+  getMenus: () =>
+    request("/Menus", {
+      method: "GET",
+    }),
+  getProfile: () =>
+    request("/User/profile", {
+      method: "GET",
     }),
 };
 

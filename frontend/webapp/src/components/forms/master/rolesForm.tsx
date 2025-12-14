@@ -9,6 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import AppAlert from "@/components/common/AppAlert";
+import { exportToExcel } from "@/lib/exportExcel";
+import SearchBar from "@/components/common/SearchBar";
+import Pagination from "@/components/common/Pagination";
+import TableSkeleton from "@/components/common/TableSkeleton";
 
 import {
   Search,
@@ -24,27 +28,20 @@ export default function RolesPage() {
   const [isActive, setIsActive] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editRoleId, setEditRoleId] = useState("");
-
   // LOADING
   const [loading, setLoading] = useState(true);
-
   // UI
   const [showForm, setShowForm] = useState(false);
-
   // MESSAGES
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
-
   // SEARCH
   const [search, setSearch] = useState("");
-
   // PAGINATION
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 5;
-
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 8;
   // ROLES LIST
   const [roles, setRoles] = useState([]);
-
   async function loadRoles() {
     setLoading(true);
     const res = await api.getRoles();
@@ -66,7 +63,6 @@ export default function RolesPage() {
       return () => clearTimeout(t);
     }
   }, [successMsg, errorMsg]);
-
   async function handleSubmit(e) {
     e.preventDefault();
     setSuccessMsg("");
@@ -107,64 +103,21 @@ export default function RolesPage() {
     setIsEditing(true);
     setShowForm(true);
   }
-
   function handleToggle(role) {
     // api.updateRole(role.id, { ...role, isActive: !role.isActive });
     loadRoles();
   }
-
   // FILTER
   const filteredRoles = roles.filter((r) =>
     r.name.toLowerCase().includes(search.toLowerCase()) ||
     r.description.toLowerCase().includes(search.toLowerCase())
   );
 
-  const paginatedRoles = filteredRoles.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
-
-  const totalPages = Math.ceil(filteredRoles.length / pageSize);
-
-  // SKELETON
-  const TableSkeleton = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-10 w-32" />
-      </div>
-
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="flex justify-between items-center bg-white rounded-lg p-4 border shadow-sm">
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-5 w-60" />
-          <Skeleton className="h-5 w-20" />
-          <Skeleton className="h-8 w-32" />
-        </div>
-      ))}
-    </div>
-  );
-
-  const FormSkeleton = () => (
-    <div className="mb-8 bg-gray-50 p-6 rounded-lg border space-y-4">
-      <Skeleton className="h-6 w-40" />
-      <Skeleton className="h-10 w-full" />
-      <Skeleton className="h-24 w-full" />
-      <div className="flex items-center gap-3">
-        <Skeleton className="h-5 w-5 rounded" />
-        <Skeleton className="h-5 w-24" />
-      </div>
-      <div className="flex justify-end gap-3 pt-2">
-        <Skeleton className="h-10 w-24" />
-        <Skeleton className="h-10 w-24" />
-      </div>
-    </div>
-  );
-
+  const paginated = filteredRoles.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.ceil(filteredRoles.length / PAGE_SIZE);
   return (
-    <div className="p-6 flex justify-center">
-
-      <Card className="w-full max-w-5xl shadow-md border rounded-xl">
+    <div>
+      <Card className="w-full shadow-md border rounded-xl">
         <CardHeader className="flex justify-between items-center">
           <CardTitle className="text-2xl">Roles Management</CardTitle>
         </CardHeader>
@@ -177,29 +130,16 @@ export default function RolesPage() {
           {/* TOP BAR */}
           {!showForm && !loading && (
             <div className="flex justify-between items-center mb-6">
-              
-              {/* Search Box with Icon */}
-              <div className="relative max-w-xs">
-                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <Input
-                  className="pl-10"
-                  placeholder="Search roles..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-
+              <SearchBar value={search} onChange={setSearch} placeholder="Search country..." />
               {/* ADD BUTTON */}
-              <Button
-                onClick={() => {
-                  resetForm();
-                  setShowForm(true);
-                }}
-                className="bg-blue-600 flex items-center gap-2"
-              >
+              <div className="flex gap-3">
+                <Button  className="bg-black hover:bg-gray-800" onClick={() => exportToExcel(roles, "Roles Details")}>
+                  Export Excel
+                </Button>
+                <Button onClick={() => {resetForm();setShowForm(true);}} className="bg-blue-600 flex items-center gap-2">
                 <Plus size={18} /> Add Role
               </Button>
-
+              </div>
             </div>
           )}
 
@@ -210,11 +150,6 @@ export default function RolesPage() {
               <Skeleton className="h-10 w-28" />
             </div>
           )}
-
-          {/* FORM SKELETON */}
-          {showForm && loading && <FormSkeleton />}
-
-          {/* FORM */}
           {showForm && !loading && (
             <div className="mb-8 bg-gray-50 p-6 rounded-lg border">
               <h2 className="text-xl font-semibold mb-4">
@@ -265,12 +200,7 @@ export default function RolesPage() {
               </form>
             </div>
           )}
-
-          {/* TABLE SKELETON */}
-          {!showForm && loading && <TableSkeleton />}
-
-          {/* TABLE */}
-          {!showForm && !loading && (
+          {!showForm && (loading ? (<TableSkeleton rows={5} />):(
             <div className="rounded-xl border overflow-hidden">
               <table className="w-full">
                 <thead className="bg-gray-100">
@@ -283,7 +213,7 @@ export default function RolesPage() {
                 </thead>
 
                 <tbody>
-                  {paginatedRoles.map((role) => (
+                  {paginated.map((role) => (
                     <tr key={role.id} className="border-t hover:bg-gray-50">
                       <td className="p-3">{role.name}</td>
                       <td className="p-3">{role.description}</td>
@@ -314,37 +244,11 @@ export default function RolesPage() {
 
               </table>
             </div>
-          )}
-
+          ))}
         </CardContent>
-
-        {/* PAGINATION */}
-        {!showForm && !loading && (
-          <CardFooter className="flex justify-between items-center p-4">
-            
-            <Button
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(currentPage - 1)}
-              className="flex items-center gap-2"
-            >
-              <ChevronLeft size={18} /> Previous
-            </Button>
-
-            <span className="text-gray-700 font-medium">
-              Page {currentPage} / {totalPages}
-            </span>
-
-            <Button
-              disabled={currentPage >= totalPages}
-              onClick={() => setCurrentPage(currentPage + 1)}
-              className="flex items-center gap-2"
-            >
-              Next <ChevronRight size={18} />
-            </Button>
-
-          </CardFooter>
+        {!showForm && (
+            <Pagination page={page} totalPages={totalPages} onPrev={() => setPage(page - 1)} onNext={() => setPage(page + 1)}/>
         )}
-
       </Card>
     </div>
   );
