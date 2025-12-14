@@ -57,7 +57,7 @@ jobs:
 
     environment:
       name: frontend-production
-      url: https://your-frontend-domain.com
+      url: https://dzrds0cnvm4xr.cloudfront.net/
 
     concurrency: deploy-frontend
 
