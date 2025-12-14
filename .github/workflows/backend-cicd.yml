@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: ${{ secrets.API_URL }}
+      url: http://54.81.12.127:5005  # ✅ hardcoded literal
     concurrency: deploy-backend
 
     steps:
