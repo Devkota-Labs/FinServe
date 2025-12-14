@@ -99,9 +99,8 @@ jobs:
             echo "🔴 Stopping backend service..."
             sudo systemctl stop finserve || true
 
-            echo "Ensuring process is terminated..."
+            echo "Waiting briefly to release file lock..."
             sleep 3
-            sudo pkill -f "FinServe.Api" || true
 
             echo "Extracting new build to temp folder..."
             sudo rm -rf /home/ec2-user/tmp_publish
