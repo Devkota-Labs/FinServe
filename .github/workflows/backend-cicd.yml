@@ -100,6 +100,12 @@ jobs:
             echo "🔴 Stopping backend service to avoid file lock..."
             sudo systemctl stop finserve || true
 
+            echo "Waiting for FinServe.Api process to terminate..."
+            while pgrep -f "/home/ec2-user/FinServeApi/FinServe.Api" > /dev/null; do
+              echo "Process still running, waiting..."
+              sleep 2
+            done
+
             echo "Extracting new build (skipping appsettings.json)..."
             sudo tar -xzf /home/ec2-user/publish.tar.gz -C /home/ec2-user/FinServeApi --overwrite
 
