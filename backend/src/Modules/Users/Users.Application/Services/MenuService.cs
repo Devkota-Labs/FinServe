@@ -1,5 +1,4 @@
 ﻿using Serilog;
-using Shared.Application.Dtos;
 using Shared.Application.Results;
 using Shared.Common.Services;
 using Users.Application.Dtos.Menu;

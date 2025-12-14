@@ -1,6 +1,4 @@
-﻿using Shared.Application.Dtos;
-using Shared.Application.Interfaces;
-using Shared.Application.Results;
+﻿using Shared.Application.Interfaces;
 using Users.Application.Dtos.Menu;
 
 namespace Users.Application.Interfaces.Services;

@@ -12,9 +12,8 @@ public class LoginHistoryEfConfig : IEntityTypeConfiguration<LoginHistory>
 
         builder.ToTable("LoginHistories");
         builder.HasKey(x => x.Id);
-        //builder.HasOne(x => x.User)
-        //    .WithMany()
-        //    .HasForeignKey(x => x.UserId)
-        //    .OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(x => x.SessionId).IsUnique();
+        builder.HasIndex(x => new { x.UserId, x.LoginTime });
+        builder.Property(x => x.LogoutTime).IsRequired(false);
     }
 }
