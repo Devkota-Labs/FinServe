@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: http://54.81.12.127:5005  # ✅ hardcoded literal
+      url: http://54.81.12.127:5005
     concurrency: deploy-backend
 
     steps:
@@ -59,10 +59,11 @@ jobs:
           name: backend-self-contained
           path: publish
 
-      - name: Create tarball
+      - name: Create tarball (skip appsettings.json)
         run: |
           cd publish
-          tar --exclude='appsettings*.json' -czf ../publish.tar.gz .
+          # Exclude ONLY appsettings.json, keep everything else
+          tar --exclude='appsettings.json' -czf ../publish.tar.gz .
           cd ..
 
       - name: Upload to EC2
@@ -86,7 +87,7 @@ jobs:
             echo "🔴 Stopping backend service to avoid file lock..."
             sudo systemctl stop finserve || true
 
-            echo "Extracting new build..."
+            echo "Extracting new build (skipping appsettings.json)..."
             sudo tar -xzf /home/ec2-user/publish.tar.gz -C /home/ec2-user/FinServeApi --overwrite
 
             sudo chmod +x /home/ec2-user/FinServeApi/FinServe.Api || true
