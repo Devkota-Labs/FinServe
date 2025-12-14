@@ -17,5 +17,5 @@ public sealed class AuthUserDto
     public required bool MfaEnabled { get; set; }
     public required string? MfaSecret { get; set; }
     public required DateTime? PasswordExpiryDate { get; set; }
-    public ICollection<string>? Roles { get; }
+    public ICollection<string>? Roles { get; set; }
 }
