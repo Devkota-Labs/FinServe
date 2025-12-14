@@ -1,23 +1,23 @@
-name: Frontend CI/CD
+name: Frontend CI/CD Pipeline
 
 on:
   push:
     branches:
       - dev
       - master
-      - feature/*
   workflow_dispatch:
 
-# ================================
-# FRONTEND CI
-# ================================
 jobs:
-  frontend-ci:
-    name: Frontend CI (Build)
+# ================================
+# FRONTEND CI (BUILD)
+# ================================
+  build:
+    name: Build & Publish Frontend Artifact
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -31,11 +31,16 @@ jobs:
         working-directory: frontend/webapp
         run: npm ci
 
-      - name: Build Frontend
+      - name: Build Frontend (Next.js Static)
         working-directory: frontend/webapp
         run: npm run build
 
-      - name: Upload Frontend Artifact
+      - name: Verify build output
+        run: |
+          echo "Checking frontend build output..."
+          ls -la frontend/webapp/out || true
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
@@ -43,29 +48,103 @@ jobs:
           retention-days: 7
 
 # ================================
-# FRONTEND CD (OPTIONAL)
+# FRONTEND CD (MANUAL APPROVAL)
 # ================================
-  frontend-cd:
-    name: Frontend CD (Approval Required)
-    needs: frontend-ci
+  deploy:
+    name: Deploy Frontend (Manual Approval)
+    needs: build
     runs-on: ubuntu-latest
 
-    # 👇 Enable approval from GitHub → Environments
     environment:
       name: frontend-production
       url: https://your-frontend-domain.com
 
+    concurrency: deploy-frontend
+
     steps:
-      - name: Download Frontend Artifact
+      - name: Download Artifact
         uses: actions/download-artifact@v4
         with:
           name: frontend-build
-          path: out
+          path: publish
 
-      - name: Deploy Frontend (placeholder)
+      - name: Create tarball
         run: |
-          echo "Deploy frontend here"
-          echo "Examples:"
-          echo "- S3 + CloudFront"
-          echo "- Nginx server"
-          echo "- Vercel (if not using GitHub Actions)"
+          cd publish
+          tar -czf ../frontend.tar.gz .
+          cd ..
+          echo "Created frontend.tar.gz"
+          ls -lh frontend.tar.gz
+
+      - name: Upload to Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.FRONTEND_HOST }}
+          username: ${{ secrets.FRONTEND_USERNAME }}
+          key: ${{ secrets.FRONTEND_SSH_KEY }}
+          port: 22
+          source: "frontend.tar.gz"
+          target: "/home/ec2-user/"
+
+      - name: Extract and Deploy Frontend
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.FRONTEND_HOST }}
+          username: ${{ secrets.FRONTEND_USERNAME }}
+          key: ${{ secrets.FRONTEND_SSH_KEY }}
+          script: |
+            sudo mkdir -p /var/www/finserve-frontend
+
+            echo "Extracting new frontend build..."
+            sudo rm -rf /home/ec2-user/tmp_frontend
+            sudo mkdir -p /home/ec2-user/tmp_frontend
+            sudo tar -xzf /home/ec2-user/frontend.tar.gz -C /home/ec2-user/tmp_frontend
+
+            echo "Replacing old frontend files..."
+            sudo rsync -a --delete /home/ec2-user/tmp_frontend/ /var/www/finserve-frontend/
+
+            sudo chown -R www-data:www-data /var/www/finserve-frontend
+            sudo chmod -R 755 /var/www/finserve-frontend
+
+            sudo rm -rf /home/ec2-user/tmp_frontend
+            sudo rm -f /home/ec2-user/frontend.tar.gz
+
+            echo "Frontend deployed successfully"
+
+      - name: Cleanup local tar
+        run: rm -f frontend.tar.gz
+
+      - name: Send Email (Success)
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "🚀 Frontend Deployment Successful – ${{ github.ref_name }}"
+          to: ${{ secrets.EMAIL_TO }}
+          from: ${{ secrets.SMTP_USERNAME }}
+          body: |
+            Frontend deployment completed successfully.
+
+            Branch: ${{ github.ref_name }}
+            Logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Send Email (Failure)
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "❌ Frontend Deployment FAILED – ${{ github.ref_name }}"
+          to: ${{ secrets.EMAIL_TO }}
+          from: ${{ secrets.SMTP_USERNAME }}
+          body: |
+            Frontend deployment FAILED.
+
+            Branch: ${{ github.ref_name }}
+            Check logs:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
