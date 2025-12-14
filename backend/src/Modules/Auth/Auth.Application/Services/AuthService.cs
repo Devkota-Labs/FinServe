@@ -2,6 +2,7 @@
 using Auth.Application.Interfaces.Repositories;
 using Auth.Application.Interfaces.Services;
 using Auth.Domain.Entities;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 using Shared.Application.Interfaces;
@@ -29,7 +30,9 @@ internal sealed class AuthService(ILogger logger,
     IMfaService mfaService,
     IJwtTokenGenerator jwtTokenGenerator,
     IRefreshTokenService refreshTokenService,
-    IMenuReadService menuReadService
+    IMenuReadService menuReadService,
+    IHttpContextAccessor httpContextAccessor,
+    ILoginHistoryService loginHistoryService
     )
     : BaseService(logger.ForContext<AuthService>(), null), IAuthService
 {
@@ -354,6 +357,8 @@ internal sealed class AuthService(ILogger logger,
 
         var refresh = await refreshTokenService.CreateRefreshTokenAsync(user.Id, ip, (int)new TimeSpan(30, 0, 0, 0, 0, 0).TotalMinutes, cancellationToken).ConfigureAwait(false);
 
+        await loginHistoryService.LoginAsync(user.Id, refresh.Id, true, null, httpContextAccessor.HttpContext, cancellationToken).ConfigureAwait(false);
+
         loginResponseDto.AccessToken = accessToken;
         loginResponseDto.RefreshToken = refresh.Token;        
 
@@ -417,6 +422,8 @@ internal sealed class AuthService(ILogger logger,
         rt.ReasonRevoked = "User logout";
 
         await refreshTokens.UpdateAsync(rt, cancellationToken).ConfigureAwait(false);
+
+        await loginHistoryService.LogoutAsync(rt.Id, cancellationToken).ConfigureAwait(false);
 
         return Result.Ok("Logged out.");
     }

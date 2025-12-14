@@ -4,6 +4,7 @@ using Auth.Infrastructure.Db;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Auth.Infrastructure.Migrations
 {
     [DbContext(typeof(AuthDbContext))]
-    partial class AuthDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251214134827_UnusedCodeRemoved")]
+    partial class UnusedCodeRemoved
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -36,20 +39,17 @@ namespace Auth.Infrastructure.Migrations
                         .HasColumnType("longtext")
                         .HasColumnName("Device");
 
-                    b.Property<string>("FailureReason")
+                    b.Property<string>("Email")
+                        .IsRequired()
                         .HasColumnType("longtext")
-                        .HasColumnName("Failure_Reason");
+                        .HasColumnName("Email");
 
                     b.Property<string>("IpAddress")
                         .IsRequired()
                         .HasColumnType("longtext")
                         .HasColumnName("Ip_Address");
 
-                    b.Property<bool>("IsSuccess")
-                        .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Success");
-
-                    b.Property<DateTime>("LoginTime")
+                    b.Property<DateTime?>("LoginTime")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("Login_Time");
 
@@ -57,24 +57,20 @@ namespace Auth.Infrastructure.Migrations
                         .HasColumnType("datetime(6)")
                         .HasColumnName("Logout_Time");
 
-                    b.Property<int>("SessionId")
-                        .HasColumnType("int")
-                        .HasColumnName("Session_Id");
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("Message");
 
                     b.Property<int>("Status")
                         .HasColumnType("int")
                         .HasColumnName("Status");
 
-                    b.Property<int>("UserId")
+                    b.Property<int?>("UserId")
                         .HasColumnType("int")
                         .HasColumnName("User_Id");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("SessionId")
-                        .IsUnique();
-
-                    b.HasIndex("UserId", "LoginTime");
 
                     b.ToTable("tbl_Auth_LoginHistories", (string)null);
                 });

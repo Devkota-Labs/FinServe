@@ -27,6 +27,7 @@ public static class AuthModule
         services.AddScoped<IOtpRepository, OtpRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IPasswordHistoryRepository, PasswordHistoryRepository>();
+        services.AddScoped<ILoginHistoryRepository, LoginHistoryRepository>();
 
         //Register Services        
         services.AddScoped<IPasswordPolicyService, PasswordPolicyService>();        

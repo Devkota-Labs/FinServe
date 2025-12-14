@@ -13,6 +13,7 @@ public static class DependencyInjection
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IPasswordHistoryService, PasswordHistoryService>();
         services.AddScoped<IPasswordReminderService, PasswordReminderService>();
+        services.AddScoped<ILoginHistoryService, LoginHistoryService>();
 
         return services;
     }

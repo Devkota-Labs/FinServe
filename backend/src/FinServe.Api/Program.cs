@@ -73,7 +73,7 @@ internal sealed class Program
 
             // -----------------------------------------------
             // API Versioning + API Explorer
-            // -----------------------------------------------
+            // -----------------------------------------------   
             builder.Services
                 .AddApiVersioning(options =>
                 {
@@ -95,7 +95,7 @@ internal sealed class Program
                     options.SubstituteApiVersionInUrl = true;
                 });
 
-            // -----------------------------------------------
+            // -----------------------------------------------       
             // Register Controllers & Swagger
             // -----------------------------------------------
             builder.Services.AddControllers
@@ -109,14 +109,7 @@ internal sealed class Program
                 .ConfigureApiBehaviorOptions(options =>
                 {
                     options.InvalidModelStateResponseFactory = context =>
-                    {
-                        //var errors = context.ModelState
-                        //    .Where(x => x.Value is not null && x.Value.Errors.Count > 0)
-                        //    .Select(x => new ModelErrorResponse(x.Key, x.Value is null ? Array.Empty<string>() : x.Value.Errors.Select(x => x.ErrorMessage)));
-
-                        //var response = new ApiResponse<IEnumerable<ModelErrorResponse>>(HttpStatusCode.BadRequest, "Validation Failed.", errors);
-
-                        var errors = context.ModelState
+                    {                        var errors = context.ModelState
                         .Where(kvp => kvp.Value.Errors.Any())
                         .SelectMany(kvp => kvp.Value.Errors.Select(e =>
                         new ValidationError(kvp.Key, e.ErrorMessage)))
@@ -139,30 +132,6 @@ internal sealed class Program
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
-                //c.DocInclusionPredicate((docName, apiDesc) =>
-                //{
-                //    if (!apiDesc.TryGetMethodInfo(out var methodInfo))
-                //        return false;
-
-                //    // Controller-level versioning
-                //    var versions = methodInfo.DeclaringType?
-                //        .GetCustomAttributes(true)
-                //        .OfType<ApiVersionAttribute>()
-                //        .SelectMany(attr => attr.Versions);
-
-                //    // Action-level versioning
-                //    var maps = methodInfo
-                //        .GetCustomAttributes(true)
-                //        .OfType<MapToApiVersionAttribute>()
-                //        .SelectMany(attr => attr.Versions);
-
-                //    var allVersions = (versions ?? Enumerable.Empty<ApiVersion>())
-                //        .Concat(maps ?? Enumerable.Empty<ApiVersion>());
-
-                //    return allVersions.Any(v =>
-                //        $"v{v.ToString()}" == docName);
-                //});
-
                 c.AddStandardApiResponses();
                 c.OperationFilter<ApiResponseOperationFilter>();
 
@@ -211,25 +180,6 @@ internal sealed class Program
             builder.Services.AddHttpContextAccessor();
 
             builder.Services.AddSingleton<IHostLifetime, CustomConsoleLiftime>();
-
-            //builder.Services.AddScoped<IUserRepository, UserRepository>();
-            //builder.Services.AddScoped<RefreshTokenService>();
-            //builder.Services.AddScoped<IEmailSender, EmailSender>();
-            //builder.Services.AddScoped<MfaService>();
-            //builder.Services.AddScoped<PasswordResetService>();
-            //builder.Services.AddScoped<PasswordPolicyService>();
-            //builder.Services.AddScoped<PasswordHistoryService>();
-            //// Infrastructure services
-            //builder.Services.AddScoped<PasswordExpiryNotificationService>();
-            //builder.Services.AddHostedService<PasswordExpiryHostedService>();
-
-            //builder.Services.AddScoped<IUserRoleService, UserRoleService>();
-            //builder.Services.AddScoped<IMenuService, MenuService>();
-            //builder.Services.AddScoped<ISmsSender, TestSmsSender>();
-            //builder.Services.AddScoped<IMobileVerificationService, MobileVerificationService>();
-
-            //builder.Services.RegisterModuleApis();
-            //builder.Services.AddModuleApiControllers();
 
             // -------------------------------------------------------------
             // Authentication + Authorization
@@ -285,13 +235,6 @@ internal sealed class Program
             app.AddLocationMigrations();
             app.AddUserMigrations();
             app.AddAuthMigrations();
-
-            // SEED DATABASE
-            //using (var scope = app.Services.CreateScope())
-            //{
-            //    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            //    await AdminSeeder.SeedAsync(db).ConfigureAwait(true);
-            //}
 
             //if (app.Environment.IsDevelopment())
             {
@@ -368,12 +311,6 @@ internal sealed class Program
         }
         Log.CloseAndFlush();
     }
-
-    //private static void OnCancelKeyPressed(object? sender, ConsoleCancelEventArgs e)
-    //{
-    //    _logger.Information("Ctrl+C has beed pressed, Ignoring the event.");
-    //    e.Cancel = true;
-    //}
 
     private static void OnApplicationStarted(WebApplication app)
     {

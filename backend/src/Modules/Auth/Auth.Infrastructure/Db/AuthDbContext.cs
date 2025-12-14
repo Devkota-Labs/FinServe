@@ -8,9 +8,7 @@ internal sealed class AuthDbContext(DbContextOptions<AuthDbContext> options) : B
 {
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
     public DbSet<PasswordHistory> PasswordHistories { get; set; } = null!;
-    public DbSet<PasswordResetToken> PasswordResetTokens { get; set; } = null!;
-    public DbSet<LoginHistory> LoginHistory { get; set; }
-    public DbSet<MobileVerificationToken> MobileVerificationTokens { get; set; }
+    public DbSet<LoginHistory> LoginHistories { get; set; }
     public DbSet<OtpVerification> OtpVerifications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
