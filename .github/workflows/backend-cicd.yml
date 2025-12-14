@@ -33,8 +33,20 @@ jobs:
             -r linux-x64 \
             --self-contained true \
             /p:PublishSingleFile=true \
+            /p:IncludeNativeLibrariesForSelfExtract=true \
             /p:PublishTrimmed=false \
+            /p:TrimMode=Link \
+            /p:DebugType=None \
+            /p:DebugSymbols=false \
             -o "$OUT_DIR"
+
+          echo "Removing appsettings from publish folder..."
+          rm -f $OUT_DIR/appsettings.json || true
+          rm -f $OUT_DIR/appsettings.Development.json || true
+          rm -f $OUT_DIR/appsettings.Production.json || true
+
+          echo "Publish done. publish/ contents:"
+          ls -la $OUT_DIR || true
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -62,9 +74,10 @@ jobs:
       - name: Create tarball (skip appsettings.json)
         run: |
           cd publish
-          # Exclude ONLY appsettings.json, keep everything else
-          tar --exclude='appsettings.json' -czf ../publish.tar.gz .
+          tar --exclude='appsettings*.json' -czf ../publish.tar.gz .
           cd ..
+          echo "Created publish.tar.gz with size:"
+          ls -lh publish.tar.gz
 
       - name: Upload to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -100,6 +113,9 @@ jobs:
             sudo systemctl daemon-reload
             sudo systemctl restart finserve
             sudo systemctl status finserve --no-pager
+
+      - name: Cleanup local publish tar
+        run: rm -f publish.tar.gz
 
       - name: Send Email (Success)
         if: success()
