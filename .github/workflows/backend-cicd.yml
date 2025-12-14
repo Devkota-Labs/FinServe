@@ -99,14 +99,24 @@ jobs:
             echo "🔴 Stopping backend service..."
             sudo systemctl stop finserve || true
 
-            echo "Extracting new build (skipping appsettings.json)..."
-            sudo tar -xzf /home/ec2-user/publish.tar.gz -C /home/ec2-user/FinServeApi --overwrite
+            echo "Ensuring process is terminated..."
+            sleep 3
+            sudo pkill -f "FinServe.Api" || true
+
+            echo "Extracting new build to temp folder..."
+            sudo rm -rf /home/ec2-user/tmp_publish
+            sudo mkdir -p /home/ec2-user/tmp_publish
+            sudo tar -xzf /home/ec2-user/publish.tar.gz -C /home/ec2-user/tmp_publish --overwrite
+
+            echo "Replacing old files..."
+            sudo rsync -a --exclude 'appsettings*.json' /home/ec2-user/tmp_publish/ /home/ec2-user/FinServeApi/
 
             sudo chmod +x /home/ec2-user/FinServeApi/FinServe.Api || true
             sudo chown -R ec2-user:ec2-user /home/ec2-user/FinServeApi
             sudo chmod -R 755 /home/ec2-user/FinServeApi
 
             sudo rm -f /home/ec2-user/publish.tar.gz
+            sudo rm -rf /home/ec2-user/tmp_publish
 
             echo "Restarting service..."
             sudo systemctl daemon-reload
