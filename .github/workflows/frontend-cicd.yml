@@ -31,14 +31,9 @@ jobs:
         working-directory: frontend/webapp
         run: npm ci
 
-      - name: Build Frontend (Next.js Static)
+      - name: Build Frontend
         working-directory: frontend/webapp
         run: npm run build
-
-      - name: Verify build output
-        run: |
-          echo "Checking frontend build output..."
-          ls -la frontend/webapp/out || true
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -57,7 +52,7 @@ jobs:
 
     environment:
       name: frontend-production
-      url: https://dzrds0cnvm4xr.cloudfront.net/
+      url: https://your-cloudfront-domain.com
 
     concurrency: deploy-frontend
 
@@ -66,53 +61,28 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-build
-          path: publish
+          path: out
 
-      - name: Create tarball
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Deploy to S3
+        uses: jakejarvis/s3-sync-action@v0.5.1
+        with:
+          args: --delete
+        env:
+          AWS_S3_BUCKET: ${{ secrets.FRONTEND_PROD_BUCKET }}
+          SOURCE_DIR: out
+
+      - name: Invalidate CloudFront Cache
         run: |
-          cd publish
-          tar -czf ../frontend.tar.gz .
-          cd ..
-          echo "Created frontend.tar.gz"
-          ls -lh frontend.tar.gz
-
-      - name: Upload to Server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.FRONTEND_HOST }}
-          username: ${{ secrets.FRONTEND_USERNAME }}
-          key: ${{ secrets.FRONTEND_SSH_KEY }}
-          port: 22
-          source: "frontend.tar.gz"
-          target: "/home/ec2-user/"
-
-      - name: Extract and Deploy Frontend
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.FRONTEND_HOST }}
-          username: ${{ secrets.FRONTEND_USERNAME }}
-          key: ${{ secrets.FRONTEND_SSH_KEY }}
-          script: |
-            sudo mkdir -p /var/www/finserve-frontend
-
-            echo "Extracting new frontend build..."
-            sudo rm -rf /home/ec2-user/tmp_frontend
-            sudo mkdir -p /home/ec2-user/tmp_frontend
-            sudo tar -xzf /home/ec2-user/frontend.tar.gz -C /home/ec2-user/tmp_frontend
-
-            echo "Replacing old frontend files..."
-            sudo rsync -a --delete /home/ec2-user/tmp_frontend/ /var/www/finserve-frontend/
-
-            sudo chown -R www-data:www-data /var/www/finserve-frontend
-            sudo chmod -R 755 /var/www/finserve-frontend
-
-            sudo rm -rf /home/ec2-user/tmp_frontend
-            sudo rm -f /home/ec2-user/frontend.tar.gz
-
-            echo "Frontend deployed successfully"
-
-      - name: Cleanup local tar
-        run: rm -f frontend.tar.gz
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
 
       - name: Send Email (Success)
         if: success()
@@ -127,7 +97,6 @@ jobs:
           from: ${{ secrets.SMTP_USERNAME }}
           body: |
             Frontend deployment completed successfully.
-
             Branch: ${{ github.ref_name }}
             Logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
@@ -144,7 +113,5 @@ jobs:
           from: ${{ secrets.SMTP_USERNAME }}
           body: |
             Frontend deployment FAILED.
-
-            Branch: ${{ github.ref_name }}
             Check logs:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
