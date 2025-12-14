@@ -95,7 +95,7 @@ internal sealed class Program
                     options.SubstituteApiVersionInUrl = true;
                 });
 
-            // -----------------------------------------------      
+            // -----------------------------------------------       
             // Register Controllers & Swagger
             // -----------------------------------------------
             builder.Services.AddControllers
