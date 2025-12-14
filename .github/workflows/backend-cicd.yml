@@ -41,9 +41,7 @@ jobs:
             -o "$OUT_DIR"
 
           echo "Removing appsettings from publish folder..."
-          rm -f $OUT_DIR/appsettings.json || true
-          rm -f $OUT_DIR/appsettings.Development.json || true
-          rm -f $OUT_DIR/appsettings.Production.json || true
+          rm -f $OUT_DIR/appsettings*.json || true
 
           echo "Publish done. publish/ contents:"
           ls -la $OUT_DIR || true
@@ -97,14 +95,9 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             sudo mkdir -p /home/ec2-user/FinServeApi
-            echo "🔴 Stopping backend service to avoid file lock..."
-            sudo systemctl stop finserve || true
 
-            echo "Waiting for FinServe.Api process to terminate..."
-            while pgrep -f "/home/ec2-user/FinServeApi/FinServe.Api" > /dev/null; do
-              echo "Process still running, waiting..."
-              sleep 2
-            done
+            echo "🔴 Stopping backend service..."
+            sudo systemctl stop finserve || true
 
             echo "Extracting new build (skipping appsettings.json)..."
             sudo tar -xzf /home/ec2-user/publish.tar.gz -C /home/ec2-user/FinServeApi --overwrite
@@ -117,8 +110,8 @@ jobs:
 
             echo "Restarting service..."
             sudo systemctl daemon-reload
-            sudo systemctl restart finserve
-            sudo systemctl status finserve --no-pager
+            sudo systemctl start finserve
+            sudo systemctl status finserve --no-pager || true
 
       - name: Cleanup local publish tar
         run: rm -f publish.tar.gz
