@@ -48,8 +48,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     environment:
-    name: production
-    url: ${{ secrets.API_URL }}
+      name: production
+      url: ${{ secrets.API_URL }}
     concurrency: deploy-backend
 
     steps:
