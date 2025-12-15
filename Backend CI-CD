@@ -33,18 +33,8 @@ jobs:
             -r linux-x64 \
             --self-contained true \
             /p:PublishSingleFile=true \
-            /p:IncludeNativeLibrariesForSelfExtract=true \
             /p:PublishTrimmed=false \
-            /p:TrimMode=Link \
-            /p:DebugType=None \
-            /p:DebugSymbols=false \
             -o "$OUT_DIR"
-
-          echo "Removing appsettings from publish folder..."
-          rm -f $OUT_DIR/appsettings*.json || true
-
-          echo "Publish done. publish/ contents:"
-          ls -la $OUT_DIR || true
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -58,8 +48,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     environment:
-      name: production
-      url: http://54.81.12.127:5005
+    name: production
+    url: ${{ secrets.API_URL }}
     concurrency: deploy-backend
 
     steps:
@@ -69,13 +59,11 @@ jobs:
           name: backend-self-contained
           path: publish
 
-      - name: Create tarball (skip appsettings.json)
+      - name: Create tarball
         run: |
           cd publish
           tar --exclude='appsettings*.json' -czf ../publish.tar.gz .
           cd ..
-          echo "Created publish.tar.gz with size:"
-          ls -lh publish.tar.gz
 
       - name: Upload to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -95,35 +83,22 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             sudo mkdir -p /home/ec2-user/FinServeApi
-
-            echo "🔴 Stopping backend service..."
+            echo "🔴 Stopping backend service to avoid file lock..."
             sudo systemctl stop finserve || true
 
-            echo "Waiting briefly to release file lock..."
-            sleep 3
-
-            echo "Extracting new build to temp folder..."
-            sudo rm -rf /home/ec2-user/tmp_publish
-            sudo mkdir -p /home/ec2-user/tmp_publish
-            sudo tar -xzf /home/ec2-user/publish.tar.gz -C /home/ec2-user/tmp_publish --overwrite
-
-            echo "Replacing old files with latest build..."
-            sudo rsync -a --delete --exclude 'appsettings*.json' /home/ec2-user/tmp_publish/ /home/ec2-user/FinServeApi/
+            echo "Extracting new build..."
+            sudo tar -xzf /home/ec2-user/publish.tar.gz -C /home/ec2-user/FinServeApi --overwrite
 
             sudo chmod +x /home/ec2-user/FinServeApi/FinServe.Api || true
             sudo chown -R ec2-user:ec2-user /home/ec2-user/FinServeApi
             sudo chmod -R 755 /home/ec2-user/FinServeApi
 
             sudo rm -f /home/ec2-user/publish.tar.gz
-            sudo rm -rf /home/ec2-user/tmp_publish
 
             echo "Restarting service..."
             sudo systemctl daemon-reload
-            sudo systemctl start finserve
-            sudo systemctl status finserve --no-pager || true
-
-      - name: Cleanup local publish tar
-        run: rm -f publish.tar.gz
+            sudo systemctl restart finserve
+            sudo systemctl status finserve --no-pager
 
       - name: Send Email (Success)
         if: success()
