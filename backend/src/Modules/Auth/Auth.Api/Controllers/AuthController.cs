@@ -4,16 +4,19 @@ using Auth.Application.Interfaces.Services;
 using Auth.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Serilog;
 using Shared.Application.Api;
 using Shared.Application.Results;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Auth.Api.Controllers;
 
 [ApiVersion("1.0")]
 [ApiVersion("2.0")]
-public sealed class AuthController(ILogger logger, IAuthService authService, IPasswordReminderService passwordReminderService)
+public sealed class AuthController(ILogger logger, IAuthService authService, IPasswordReminderService passwordReminderService, IConfiguration configuration)
     : BaseApiController(logger.ForContext<AuthController>())
 {
     [HttpPost("login")]
@@ -57,7 +60,13 @@ public sealed class AuthController(ILogger logger, IAuthService authService, IPa
     {
         var serviceResponse = await authService.VerifyEmailAsync(new VerifyEmailDto(email, token), cancellationToken).ConfigureAwait(false);
 
-        return FromResult(serviceResponse);
+        var frontendBaseUrl = configuration["Frontend:BaseUrl"];
+
+        var redirectUrl = serviceResponse.Success
+        ? $"{frontendBaseUrl}/email-verified"
+        : $"{frontendBaseUrl}/email-verification-failed?reason={serviceResponse.Message}";
+
+        return Redirect(redirectUrl);
     }
 
     [HttpPost("send-verification-email/{userId}")]

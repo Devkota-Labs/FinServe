@@ -4,6 +4,7 @@ using Auth.Application.Interfaces.Services;
 using Auth.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Shared.Application.Interfaces;
 using Shared.Application.Results;
@@ -168,8 +169,9 @@ internal sealed class AuthService(ILogger logger,
 
         var baseUrl = appUrlProvider.GetBaseUrl();
 
-        //ToDo version should be dynamic
-        string verificationUrl = $"{baseUrl}api/v1/auth/verify-email?email={user.Email}&token={emailVerification.Token}";
+        var emailVerificationVersion = configuration.GetValue("AppConfig:Api:EmailVerificationVersion", "1");
+
+        string verificationUrl = $"{baseUrl}api/v{emailVerificationVersion}/auth/verify-email?email={Uri.EscapeDataString(user.Email)}&token={emailVerification.Token}";
 
         string body = $@"
                 <p>Hello <strong>{user.FullName}</strong>,</p>
