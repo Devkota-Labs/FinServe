@@ -16,7 +16,7 @@ internal sealed class StateEfConfig : IEntityTypeConfiguration<State>
         builder.HasMany(x => x.Cities)
                .WithOne(x => x.State)
                .HasForeignKey(x => x.StateId)
-               .OnDelete(DeleteBehavior.Cascade);
+               .OnDelete(DeleteBehavior.Restrict);
 
         StateSeeder.Seed(builder);
     }
