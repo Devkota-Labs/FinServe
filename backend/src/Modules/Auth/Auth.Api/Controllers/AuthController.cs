@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using Shared.Application.Api;
+using Shared.Application.Results;
 
 namespace Auth.Api.Controllers;
 
@@ -105,7 +106,7 @@ public sealed class AuthController(ILogger logger, IAuthService authService, IPa
     {
         string? refreshToken = Request.Cookies["refreshToken"];
         if (string.IsNullOrEmpty(refreshToken))
-            return Unauthorized("Refresh token missing.");
+            return FromResult(Result.Fail("Refresh token missing."));
 
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
@@ -138,7 +139,7 @@ public sealed class AuthController(ILogger logger, IAuthService authService, IPa
 
         if (string.IsNullOrWhiteSpace(token))
         {
-            return Unauthorized("Refresh token missing.");
+            return FromResult(Result.Fail("Refresh token missing."));
         }
 
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
