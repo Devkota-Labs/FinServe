@@ -1,4 +1,6 @@
-﻿namespace Shared.Domain;
+﻿using Shared.Application.Interfaces.Entities;
+
+namespace Shared.Domain.Entities;
 
 public abstract class BaseAuditableEntity : BaseEntity, IAuditableEntity
 {

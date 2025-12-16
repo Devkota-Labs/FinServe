@@ -1,4 +1,4 @@
-﻿namespace Shared.Application.Interfaces;
+﻿namespace Shared.Application.Interfaces.Services;
 
 public interface IOtpGenerator
 {

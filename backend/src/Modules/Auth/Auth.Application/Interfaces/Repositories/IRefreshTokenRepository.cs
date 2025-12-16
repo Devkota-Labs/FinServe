@@ -1,5 +1,5 @@
 ﻿using Auth.Domain.Entities;
-using Shared.Application.Interfaces;
+using Shared.Application.Interfaces.Repositories;
 
 namespace Auth.Application.Interfaces.Repositories;
 

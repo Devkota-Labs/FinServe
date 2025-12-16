@@ -1,6 +1,6 @@
 ﻿using Shared.Application.Results;
 
-namespace Shared.Application.Interfaces;
+namespace Shared.Application.Interfaces.Services;
 
 public interface IService<TReturnDto, TCreateDto, TUpdateDto>
 {

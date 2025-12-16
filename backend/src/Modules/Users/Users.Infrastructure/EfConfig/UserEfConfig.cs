@@ -14,6 +14,10 @@ internal sealed class UserEfConfig : IEntityTypeConfiguration<User>
         builder.ToTable("Users");
         builder.HasKey(x => x.Id);
         builder.Property(u => u.Email).IsRequired().HasMaxLength(200);
+        builder.Property(u => u.Gender)
+            .HasConversion<string>()
+            .HasMaxLength(50)
+            .IsRequired();
         builder.HasMany(u => u.UserRoles)
                .WithOne(ur => ur.User)
                .HasForeignKey(ur => ur.UserId)

@@ -1,4 +1,4 @@
-﻿using Shared.Application.Interfaces;
+﻿using Shared.Application.Interfaces.Services;
 using System.Reflection;
 using System.Text;
 

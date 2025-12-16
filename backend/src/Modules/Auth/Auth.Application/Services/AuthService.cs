@@ -2,11 +2,12 @@
 using Auth.Application.Interfaces.Repositories;
 using Auth.Application.Interfaces.Services;
 using Auth.Domain.Entities;
+using Lookup.Application.Lookups;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Serilog;
-using Shared.Application.Interfaces;
+using Shared.Application.Interfaces.Services;
 using Shared.Application.Results;
 using Shared.Common.Services;
 using Shared.Common.Utils;
@@ -65,8 +66,13 @@ internal sealed class AuthService(ILogger logger,
             return Result<RegisterResponseDto>.Fail(message);
 
         var passwordHash = passwordHasher.Hash(dto.Password);
+        
+        if (!GenderLookup.TryFromCode(dto.Gender, out var gender))
+        {
+            return Result<RegisterResponseDto>.Fail("Invalid gender");
+        }
 
-        var createUserDto = new CreateUserDto(dto.UserName, dto.Email, dto.Mobile, dto.Gender, dto.DateOfBirth, dto.FirstName, dto.MiddleName, dto.LastName, dto.CountryId, dto.CityId, dto.StateId, dto.Address, dto.PinCode, passwordHash);
+        var createUserDto = new CreateUserDto(dto.UserName, dto.Email, dto.Mobile, gender, dto.DateOfBirth, dto.FirstName, dto.MiddleName, dto.LastName, dto.CountryId, dto.CityId, dto.StateId, dto.Address, dto.PinCode, passwordHash);
 
         var authUserDto = await usersWrite.CreateUserAsync(createUserDto, cancellationToken).ConfigureAwait(false);
 

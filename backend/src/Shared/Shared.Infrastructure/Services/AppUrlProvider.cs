@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Serilog;
-using Shared.Application.Interfaces;
+using Shared.Application.Interfaces.Services;
 using Shared.Common.Services;
 
 namespace Shared.Infrastructure.Services;

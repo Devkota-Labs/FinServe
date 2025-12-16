@@ -59,6 +59,17 @@
       <Platform Project="x64" />
     </Project>
   </Folder>
+  <Folder Name="/src/Modules/Lookup/">
+    <Project Path="backend/src/Modules/Lookup/Lookup.Api/Lookup.Api.csproj" Id="a22ab1c0-1def-49e8-a49b-a01204ed1d56">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="backend/src/Modules/Lookup/Lookup.Application/Lookup.Application.csproj" Id="58763770-3080-416f-86b1-726e16151968">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="backend/src/Modules/Lookup/Lookup.Domain/Lookup.Domain.csproj" Id="f27f68be-42b4-44d1-8087-16b32a4a611d">
+      <Platform Project="x64" />
+    </Project>
+  </Folder>
   <Folder Name="/src/Modules/Notification/">
     <Project Path="backend/src/Modules/Notification/Notification.Api/Notification.Api.csproj">
       <Platform Project="x64" />

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Shared.Application.Interfaces;
+using Shared.Application.Interfaces.Services;
 using Shared.Infrastructure.Options;
 using Shared.Infrastructure.Services;
 

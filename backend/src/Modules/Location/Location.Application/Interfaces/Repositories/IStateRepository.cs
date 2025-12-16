@@ -1,5 +1,5 @@
 ﻿using Location.Domain.Entities;
-using Shared.Application.Interfaces;
+using Shared.Application.Interfaces.Repositories;
 
 namespace Location.Application.Interfaces.Repositories;
 

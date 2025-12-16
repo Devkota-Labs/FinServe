@@ -1,5 +1,5 @@
 ﻿using Serilog;
-using Shared.Application.Interfaces;
+using Shared.Application.Interfaces.Services;
 using Shared.Common.Services;
 using System.Security.Cryptography;
 using System.Text;

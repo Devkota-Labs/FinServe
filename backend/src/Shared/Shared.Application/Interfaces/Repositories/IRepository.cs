@@ -1,8 +1,8 @@
-﻿using Shared.Domain;
+﻿using Shared.Application.Interfaces.Entities;
 
-namespace Shared.Application.Interfaces;
+namespace Shared.Application.Interfaces.Repositories;
 
-public interface IRepository<T> where T : BaseEntity
+public interface IRepository<T> where T : IBaseEntity
 {
     Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default);
     Task<T?> GetByIdAsync(int id, CancellationToken cancellationToken = default);

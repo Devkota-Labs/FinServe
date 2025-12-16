@@ -1,4 +1,4 @@
-using Shared.Domain;
+using Shared.Domain.Entities;
 
 namespace Auth.Domain.Entities;
 public sealed class PasswordHistory : BaseEntity

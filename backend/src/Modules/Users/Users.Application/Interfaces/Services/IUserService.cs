@@ -1,4 +1,4 @@
-﻿using Shared.Application.Interfaces;
+﻿using Shared.Application.Interfaces.Services;
 using Shared.Application.Results;
 using Users.Application.Dtos.User;
 

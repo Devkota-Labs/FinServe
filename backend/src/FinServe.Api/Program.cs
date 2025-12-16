@@ -6,6 +6,7 @@ using FinServe.Api.Extensions;
 using FinServe.Api.Services;
 using FinServe.Api.Swagger;
 using Location.Infrastructure.Module;
+using Lookup.Application;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -123,6 +124,7 @@ internal sealed class Program
                 .AddApplicationPart(typeof(Auth.Api.AssemblyReference).Assembly)
                 .AddApplicationPart(typeof(Location.Api.AssemblyReference).Assembly)
                 .AddApplicationPart(typeof(Users.Api.AssemblyReference).Assembly)
+                .AddApplicationPart(typeof(Lookup.Api.AssemblyReference).Assembly)
                 ;
             ;
 
@@ -174,6 +176,7 @@ internal sealed class Program
                 .AddLocationModule(builder.Configuration)
                 .AddUserModule(builder.Configuration)
                 .AddAuthModule(builder.Configuration)
+                .AddLookupApplication()
                 ;
 
             builder.Services.AddMemoryCache();
