@@ -3,146 +3,78 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using Shared.Application.Api;
-using Users.Application.Dtos.Menu;
 using Users.Application.Dtos.Role;
-using Users.Application.Interfaces.Repositories;
-using Users.Domain.Entities;
+using Users.Application.Interfaces.Services;
 
 namespace Users.Api.Controllers;
 
 [ApiVersion("1.0")]
-//[Authorize]
-//[Authorize(Roles = "Admin")]
-public sealed class RolesController(ILogger logger, IRoleRepository RoleRepository) : BaseApiController(logger.ForContext<RolesController>())
+[Authorize]
+[Authorize(Roles = "Admin")]
+public sealed class RolesController(ILogger logger, IRoleService roleService)
+    : BaseApiController(logger.ForContext<RolesController>())
 {
-    private readonly IRoleRepository _roleRepository = RoleRepository;
-
-    private RoleDto MapToDto(Role role) =>
-        new(role.Id, role.Name, role.Description, [.. role.RoleMenus.Select(rm => rm.Menu.Name)]);
-
-    private MenuDto MapToMenuDto(RoleMenu roleMenu) =>
-        new(roleMenu.MenuId, roleMenu.Menu.Name, roleMenu.Menu.Route, roleMenu.Menu.Icon, roleMenu.Menu.Sequence);
-
     [HttpGet]
-    public async Task<IActionResult> Get()
+    public async Task<IActionResult> Get(CancellationToken cancellationToken)
     {
-        var data = await _roleRepository.GetAllAsync().ConfigureAwait(false);
+        var serviceResponse = await roleService.GetAllAsync(cancellationToken).ConfigureAwait(false);
 
-        var roles = data.Select(MapToDto);
-
-        return Ok(roles);
+        return FromResult(serviceResponse);
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> Get(int id)
+    public async Task<IActionResult> Get(int id, CancellationToken cancellationToken)
     {
-        var role = await _roleRepository.GetByIdAsync(id).ConfigureAwait(false);
+        var serviceResponse = await roleService.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
-        if (role == null)
-            return NotFound($"Role not found with id {id}");
-
-        return Ok(MapToDto(role));
+        return FromResult(serviceResponse);
     }
 
     //GET Menus for a Role
     [HttpGet("menus/{roleId}")]
-    public async Task<IActionResult> GetMenus(int roleId)
+    public async Task<IActionResult> GetMenus(int roleId, CancellationToken cancellationToken)
     {
-        var role = await _roleRepository.GetByIdAsync(roleId).ConfigureAwait(false);
+        var serviceResponse = await roleService.GetMenus(roleId, cancellationToken).ConfigureAwait(false);
 
-        if (role is null)
-            return NotFound($"Role not found with id {roleId}");
-
-        if (role.RoleMenus is null)
-        {
-            return Ok($"No menus are assigned to role {role.Name}", role);
-        }
-
-        var menus = role.RoleMenus.Select(MapToMenuDto);
-
-        return Ok(menus);
+        return FromResult(serviceResponse);
     }
 
     //Assign Menus to a Role
     [HttpPost("menus/{roleId}")]
-    public async Task<IActionResult> AssignMenus(int roleId, AssignMenusDto dto)
+    public async Task<IActionResult> AssignMenus(int roleId, AssignMenusDto dto, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(dto);
 
-        var role = await _roleRepository.GetByIdAsync(roleId).ConfigureAwait(false);
+        var serviceResponse = await roleService.AssignMenus(roleId, dto, cancellationToken).ConfigureAwait(false);
 
-        if (role is null)
-            return NotFound($"Role not found with id {roleId}");
-
-        await _roleRepository.AssignMenusAsync(role.Id, dto.MenuIds).ConfigureAwait(false);
-
-        return Ok("Menus assigned successfully", MapToDto(role));
+        return FromResult(serviceResponse);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post(CreateRoleDto dto)
+    public async Task<IActionResult> Post(CreateRoleDto dto, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(dto);
 
-        var exists = await _roleRepository.GetByNameAsync(dto.Name).ConfigureAwait(false);
+        var serviceResponse = await roleService.CreateAsync(dto, cancellationToken).ConfigureAwait(false);
 
-        if (exists is not null)
-        {
-            return BadRequest($"Role with name {exists.Name} already exists.");
-        }
-
-        var role = new Role
-        {
-            Name = dto.Name,
-            Description = dto.Description,
-            IsActive = dto.IsActive
-        };
-
-        await _roleRepository.AddAsync(role).ConfigureAwait(false);
-
-        return Created("Role created.", MapToDto(role));
+        return FromResult(serviceResponse);
     }
 
     [HttpPatch("{id}")]
-    public async Task<IActionResult> Put(int id, UpdateRoleDto dto)
+    public async Task<IActionResult> Put(int id, UpdateRoleDto dto, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(dto);
 
-        var role = await _roleRepository.GetByIdAsync(id).ConfigureAwait(false);
+        var serviceResponse = await roleService.UpdateAsync(id, dto, cancellationToken).ConfigureAwait(false);
 
-        if (role == null)
-            return NotFound($"Role not found with id {id}");
-
-        if (dto.Name is not null)
-        {
-            var exists = await _roleRepository.GetByNameAsync(dto.Name).ConfigureAwait(false);
-
-            if (exists is not null)
-            {
-                return BadRequest($"Role with name {exists.Name} already exists.");
-            }
-
-            role.Name = dto.Name;
-        }
-
-        if (dto.Description is not null) role.Description = dto.Description;
-        if (dto.IsActive is not null) role.IsActive = dto.IsActive.Value;
-
-        await _roleRepository.UpdateAsync(role).ConfigureAwait(false);
-
-        return Ok("Role updated.", MapToDto(role));
+        return FromResult(serviceResponse);
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        var role = await _roleRepository.GetByIdAsync(id).ConfigureAwait(false);
+        var serviceResponse = await roleService.DeleteAsync(id, cancellationToken).ConfigureAwait(false);
 
-        if (role == null)
-            return NotFound($"Role not found with id {id}");
-
-        await _roleRepository.DeleteAsync(role).ConfigureAwait(false);
-
-        return Ok("Role deleted.", MapToDto(role));
+        return FromResult(serviceResponse);
     }
 }

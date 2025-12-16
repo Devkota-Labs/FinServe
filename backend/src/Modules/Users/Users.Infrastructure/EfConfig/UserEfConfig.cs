@@ -17,7 +17,7 @@ internal sealed class UserEfConfig : IEntityTypeConfiguration<User>
         builder.HasMany(u => u.UserRoles)
                .WithOne(ur => ur.User)
                .HasForeignKey(ur => ur.UserId)
-               .OnDelete(DeleteBehavior.Cascade);
+               .OnDelete(DeleteBehavior.Restrict);
 
         UserSeeder.Seed(builder);
     }

@@ -7,73 +7,78 @@ namespace Users.Infrastructure.Repositories;
 
 internal sealed class UserRepository(UserDbContext db) : IUserRepository
 {
-    private readonly UserDbContext _db = db;
-
-    public async Task<bool> ExistsAsync(int id)
+    public async Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
     {
-        return await _db.Users.AnyAsync(x => x.Id == id).ConfigureAwait(false);
+        return await db.Users.AnyAsync(x => x.Id == id, cancellationToken).ConfigureAwait(false);
     }
     
-    public async Task<List<User>> GetAllAsync()
+    public async Task<List<User>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await _db.Users
+        return await db.Users
             .AsNoTracking()
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .OrderBy(x => x.Id)
-            .ToListAsync().ConfigureAwait(false);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
     }
-    public async Task<User?> GetByIdAsync(int id)
+    public async Task<User?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        return await _db.Users
+        return await db.Users
             .AsNoTracking()
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<User?> GetByNameAsync(string name)
+    public async Task<User?> GetByNameAsync(string userName, CancellationToken cancellationToken = default)
     {
-        return await _db.Users
+        return await db.Users
             .AsNoTracking()
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(x => x.FullName == name).ConfigureAwait(false);
+            .FirstOrDefaultAsync(x => x.UserName == userName, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<User?> GetByEmailAsync(string email)
+    public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
-        return await _db.Users
+        return await db.Users
             .AsNoTracking()
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(x => x.Email == email).ConfigureAwait(false);
+            .FirstOrDefaultAsync(x => x.Email == email,cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<User?> GetByMobileAsync(string mobile)
+    public async Task<User?> GetByMobileAsync(string mobile, CancellationToken cancellationToken = default)
     {
-        return await _db.Users
+        return await db.Users
             .AsNoTracking()
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(x => x.Mobile == mobile).ConfigureAwait(false);
+            .FirstOrDefaultAsync(x => x.Mobile == mobile,cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task AddAsync(User User)
+    public async Task<User?> GetByUserNameOrEmailAsync(string userNameOrEmail, CancellationToken cancellationToken = default)
+        => await db.Users.Where(x => x.Email == userNameOrEmail || x.UserName == userNameOrEmail)
+            .AsNoTracking()
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+
+    public async Task AddAsync(User user, CancellationToken cancellationToken = default)
     {
-        await _db.Users.AddAsync(User).ConfigureAwait(false);
-        await _db.SaveChangesAsync().ConfigureAwait(false);
+        await db.Users.AddAsync(user, cancellationToken).ConfigureAwait(false);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task UpdateAsync(User User)
+    public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)
     {
-        _db.Users.Update(User);
-        await _db.SaveChangesAsync().ConfigureAwait(false);
+        db.Users.Update(user);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task DeleteAsync(User User)
+    public async Task DeleteAsync(User user, CancellationToken cancellationToken = default)
     {
-        _db.Users.Remove(User);
-        await _db.SaveChangesAsync().ConfigureAwait(false);
+        db.Users.Remove(user);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 }

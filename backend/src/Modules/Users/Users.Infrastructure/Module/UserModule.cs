@@ -2,9 +2,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Users.Application;
 using Users.Application.Interfaces.Repositories;
+using Users.Application.Interfaces.Services;
 using Users.Infrastructure.Db;
 using Users.Infrastructure.Repositories;
+using Users.Infrastructure.Services;
 
 namespace Users.Infrastructure.Module;
 
@@ -23,6 +26,13 @@ public static class UserModule
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
         services.AddScoped<IMenuRepository, MenuRepository>();
+
+        //Register Services
+        services.AddScoped<IUserReadService, UserReadService>();
+        services.AddScoped<IUserWriteService, UserWriteService>();
+        services.AddScoped<IMenuReadService, MenuReadService>();
+
+        services.AddUsersApplication();
 
         return services;
     }

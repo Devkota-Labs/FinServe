@@ -28,13 +28,16 @@ internal sealed class PasswordHasher : IPasswordHasher
     public bool Verify(string hashed, string password)
     {
         var parts = Convert.FromBase64String(hashed);
-        if (parts.Length != 1 + SaltSize + KeySize) return false;
+        if (parts.Length != 1 + SaltSize + KeySize)
+            return false;
         var salt = new byte[SaltSize];
         Buffer.BlockCopy(parts, 1, salt, 0, SaltSize);
+
         using var deriveBytes = new Rfc2898DeriveBytes(password, salt, Iterations, HashAlgorithmName.SHA256);
         var key = deriveBytes.GetBytes(KeySize);
         var storedKey = new byte[KeySize];
         Buffer.BlockCopy(parts, 1 + SaltSize, storedKey, 0, KeySize);
+
         return CryptographicOperations.FixedTimeEquals(key, storedKey);
     }
 }

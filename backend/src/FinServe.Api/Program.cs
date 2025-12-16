@@ -1,7 +1,8 @@
 ﻿using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
+using Auth.Infrastructure.Module;
 using FinServe.Api.Configurations;
-using FinServe.Api.Middlewares;
+using FinServe.Api.Extensions;
 using FinServe.Api.Services;
 using FinServe.Api.Swagger;
 using Location.Infrastructure.Module;
@@ -11,11 +12,11 @@ using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Debugging;
-using Shared.Application;
-using Shared.Application.Responses;
+using Shared.Application.Results;
 using Shared.Common;
 using Shared.Common.Helpers;
 using Shared.Common.Utils;
+using Shared.Common.Validators;
 using Shared.Infrastructure.Extensions;
 using Shared.Logging;
 using Shared.Security;
@@ -24,6 +25,7 @@ using System.Net;
 using System.Runtime;
 using System.Text.Json.Serialization;
 using Users.Infrastructure.Module;
+using static FinServe.Api.Extensions.SwaggerExtensions;
 using ILogger = Serilog.ILogger;
 
 namespace FinServe.Api;
@@ -71,7 +73,7 @@ internal sealed class Program
 
             // -----------------------------------------------
             // API Versioning + API Explorer
-            // -----------------------------------------------
+            // -----------------------------------------------   
             builder.Services
                 .AddApiVersioning(options =>
                 {
@@ -93,10 +95,11 @@ internal sealed class Program
                     options.SubstituteApiVersionInUrl = true;
                 });
 
-            // -----------------------------------------------
+            // -----------------------------------------------       
             // Register Controllers & Swagger
             // -----------------------------------------------
-            builder.Services.AddControllers()
+            builder.Services.AddControllers
+                (options => options.Filters.Add<ModelValidationFilter>())
                 .AddJsonOptions(o =>
                 {
                     o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -106,20 +109,21 @@ internal sealed class Program
                 .ConfigureApiBehaviorOptions(options =>
                 {
                     options.InvalidModelStateResponseFactory = context =>
-                    {
-                        var errors = context.ModelState
-                            .Where(x => x.Value is not null && x.Value.Errors.Count > 0)
-                            .Select(x => new ModelErrorResponse(x.Key, x.Value is null ? Array.Empty<string>() : x.Value.Errors.Select(x => x.ErrorMessage)));
+                    {                        var errors = context.ModelState
+                        .Where(kvp => kvp.Value.Errors.Any())
+                        .SelectMany(kvp => kvp.Value.Errors.Select(e =>
+                        new ValidationError(kvp.Key, e.ErrorMessage)))
+                        .ToList();
 
-                        var response = new ApiResponse<IEnumerable<ModelErrorResponse>>(HttpStatusCode.BadRequest, "Validation Failed.", errors);
+                        var result = Result.Validation(errors);
 
-                        return new ObjectResult(response) { StatusCode = (int)HttpStatusCode.BadRequest, };
+                        return new ObjectResult(result) { StatusCode = (int)HttpStatusCode.BadRequest, };
                     };
-                })
-                //.AddApplicationPart(typeof(Modules.Users.Api.AssemblyReference).Assembly)
-                //.AddApplicationPart(typeof(Modules.Auth.Api.AssemblyReference).Assembly)
+                })                
+                .AddApplicationPart(typeof(Auth.Api.AssemblyReference).Assembly)
                 .AddApplicationPart(typeof(Location.Api.AssemblyReference).Assembly)
-                .AddApplicationPart(typeof(Users.Api.AssemblyReference).Assembly);
+                .AddApplicationPart(typeof(Users.Api.AssemblyReference).Assembly)
+                ;
             ;
 
             // -------------------------------------------------------------
@@ -128,6 +132,9 @@ internal sealed class Program
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
+                c.AddStandardApiResponses();
+                c.OperationFilter<ApiResponseOperationFilter>();
+
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
@@ -160,37 +167,19 @@ internal sealed class Program
             // Register Module Services
             // -----------------------------------------------
             builder.Services
-                .AddSharedInfrastructure()
+                .AddSharedInfrastructure(builder.Configuration)
                 .AddSharedCommonModule(builder.Configuration)
                 .AddSharedLoggingModule(builder.Configuration)
                 .AddSharedSecurityModule(builder.Configuration)
                 .AddLocationModule(builder.Configuration)
                 .AddUserModule(builder.Configuration)
+                .AddAuthModule(builder.Configuration)
                 ;
 
             builder.Services.AddMemoryCache();
             builder.Services.AddHttpContextAccessor();
 
             builder.Services.AddSingleton<IHostLifetime, CustomConsoleLiftime>();
-
-            //builder.Services.AddScoped<IUserRepository, UserRepository>();
-            //builder.Services.AddScoped<RefreshTokenService>();
-            //builder.Services.AddScoped<IEmailSender, EmailSender>();
-            //builder.Services.AddScoped<MfaService>();
-            //builder.Services.AddScoped<PasswordResetService>();
-            //builder.Services.AddScoped<PasswordPolicyService>();
-            //builder.Services.AddScoped<PasswordHistoryService>();
-            //// Infrastructure services
-            //builder.Services.AddScoped<PasswordExpiryNotificationService>();
-            //builder.Services.AddHostedService<PasswordExpiryHostedService>();
-
-            //builder.Services.AddScoped<IUserRoleService, UserRoleService>();
-            //builder.Services.AddScoped<IMenuService, MenuService>();
-            //builder.Services.AddScoped<ISmsSender, TestSmsSender>();
-            //builder.Services.AddScoped<IMobileVerificationService, MobileVerificationService>();
-
-            //builder.Services.RegisterModuleApis();
-            //builder.Services.AddModuleApiControllers();
 
             // -------------------------------------------------------------
             // Authentication + Authorization
@@ -228,9 +217,8 @@ internal sealed class Program
             // -------------------------------------------------------------
             var app = builder.Build();
 
-            // global exception handler (must be early in pipeline)
-            app.UseGlobalExceptionHandler();
-            app.UseMiddleware<NullBodyValidationMiddleware>();
+            //Register middlewares
+            app.UseMiddlewares();
 
             //Get Required Services
             T GetService<T>() where T : notnull
@@ -246,14 +234,7 @@ internal sealed class Program
             // AUTO-MIGRATION FOR ALL MODULE DB CONTEXTS
             app.AddLocationMigrations();
             app.AddUserMigrations();
-
-
-            // SEED DATABASE
-            //using (var scope = app.Services.CreateScope())
-            //{
-            //    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            //    await AdminSeeder.SeedAsync(db).ConfigureAwait(true);
-            //}
+            app.AddAuthMigrations();
 
             //if (app.Environment.IsDevelopment())
             {
@@ -330,12 +311,6 @@ internal sealed class Program
         }
         Log.CloseAndFlush();
     }
-
-    //private static void OnCancelKeyPressed(object? sender, ConsoleCancelEventArgs e)
-    //{
-    //    _logger.Information("Ctrl+C has beed pressed, Ignoring the event.");
-    //    e.Cancel = true;
-    //}
 
     private static void OnApplicationStarted(WebApplication app)
     {

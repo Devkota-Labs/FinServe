@@ -13,7 +13,7 @@ export default function LandingPage() {
         <div className="flex-1 text-center md:text-left">
           <h2 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
             Take Control of Your<br />
-            <span className="text-blue-600">Financial Future</span>.
+            <span className="text-blue-600">Financial Future this is testing </span>.
           </h2>
 
           <p className="text-gray-600 text-lg md:text-xl mb-10 max-w-xl mx-auto md:mx-0">

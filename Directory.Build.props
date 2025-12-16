@@ -49,7 +49,9 @@
 
   <!-- PACKAGES ADDED TO ALL PROJECTS -->
   <ItemGroup>
-    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.AspNetCore">
+      <TreatAsUsed>true</TreatAsUsed>
+    </PackageReference>
   </ItemGroup>
   
   <!-- PACKAGES REMOVED FROM ALL PROJECTS -->

@@ -1,11 +1,35 @@
-﻿using System.Net;
+﻿using Shared.Application.Results;
 
 namespace Shared.Application.Responses;
 
-public sealed class ApiResponse<T>(HttpStatusCode statusCode, string? message = null, T? data = null) where T : class
+public class ApiResponse
 {
-    public int StatusCode { get; } = (int)statusCode;
-    public HttpStatusCode HttpStatusCode { get; } = statusCode;
-    public string? Message { get; } = message;
-    public T? Data { get; } = data;
+    public bool Success { get; set; }
+    public string Message { get; set; } = null!;
+    public string Code { get; set; } = null!;
+    public object Data { get; set; } = null!;
+    public ICollection<ValidationError> Errors { get; set; } = null!;
+
+    public static ApiResponse FromResult(Result r)
+    {
+        return new ApiResponse
+        {
+            Success = r.Success,
+            Message = r.Message,
+            Code = r.ErrorCode,
+            Errors = r.Errors
+        };
+    }
+
+    public static ApiResponse FromResult<T>(Result<T> r)
+    {
+        return new ApiResponse
+        {
+            Success = r.Success,
+            Message = r.Message,
+            Code = r.ErrorCode,
+            Errors = r.Errors,
+            Data = r.Data
+        };
+    }
 }
