@@ -6,6 +6,7 @@
     <ProjectReference Include="..\..\..\Shared\Shared.Application\Shared.Application.csproj" />
     <ProjectReference Include="..\..\..\Shared\Shared.Common\Shared.Common.csproj" />
     <ProjectReference Include="..\..\..\Shared\Shared.Domain\Shared.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Shared\Shared.Infrastructure\Shared.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\Shared\Shared.Security\Shared.Security.csproj" />
     <ProjectReference Include="..\..\Users\Users.Application\Users.Application.csproj" />
     <ProjectReference Include="..\Auth.Domain\Auth.Domain.csproj" />

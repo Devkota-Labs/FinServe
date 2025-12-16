@@ -73,7 +73,7 @@ internal sealed class UserService(ILogger logger, IUserRepository repo, IPasswor
             IsApproved = false,
             PasswordHash = dto.Password,
             PasswordLastChanged = DateTime.UtcNow,
-            PasswordExpiryDate = DateTime.UtcNow.AddDays(configuration.GetValue("Security:PasswordExpiryDays", 90))
+            PasswordExpiryDate = DateTime.UtcNow.AddDays(configuration.GetValue("AppConfig:Security:PasswordExpiryDays", 90))
         };
 
         await repo.AddAsync(newEntity, cancellationToken).ConfigureAwait(false);

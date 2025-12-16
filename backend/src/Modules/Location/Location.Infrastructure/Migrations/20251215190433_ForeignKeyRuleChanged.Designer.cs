@@ -4,6 +4,7 @@ using Location.Infrastructure.Db;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Location.Infrastructure.Migrations
 {
     [DbContext(typeof(LocationDbContext))]
-    partial class LocationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251215190433_ForeignKeyRuleChanged")]
+    partial class ForeignKeyRuleChanged
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -4,13 +4,11 @@ using Auth.Application.Interfaces.Services;
 using Auth.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 using Shared.Application.Api;
 using Shared.Application.Results;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Auth.Api.Controllers;
 
@@ -60,7 +58,7 @@ public sealed class AuthController(ILogger logger, IAuthService authService, IPa
     {
         var serviceResponse = await authService.VerifyEmailAsync(new VerifyEmailDto(email, token), cancellationToken).ConfigureAwait(false);
 
-        var frontendBaseUrl = configuration["Frontend:BaseUrl"];
+        var frontendBaseUrl = configuration["AppConfig:Frontend:BaseUrl"];
 
         var redirectUrl = serviceResponse.Success
         ? $"{frontendBaseUrl}/email-verified"
@@ -173,6 +171,21 @@ public sealed class AuthController(ILogger logger, IAuthService authService, IPa
         var serviceResponse = await authService.SendForgotPasswordAsync(forgotPasswordDto, cancellationToken).ConfigureAwait(false);
 
         return FromResult(serviceResponse);
+    }
+
+    [HttpGet("verify-reset-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> VerifyResetPassword([FromQuery] string email, [FromQuery] string token, CancellationToken cancellationToken)
+    {
+        var serviceResponse = await authService.VerifyEmailAsync(new VerifyEmailDto(email, token), cancellationToken).ConfigureAwait(false);
+
+        var frontendBaseUrl = configuration["AppConfig:Frontend:BaseUrl"];
+
+        var redirectUrl = serviceResponse.Success
+        ? $"{frontendBaseUrl}/email-verified"
+        : $"{frontendBaseUrl}/email-verification-failed?reason={serviceResponse.Message}";
+
+        return Redirect(redirectUrl);
     }
 
     [HttpPost("reset-password")]

@@ -1,4 +1,4 @@
-﻿namespace Auth.Application.Dtos;
+﻿namespace Shared.Infrastructure.Options;
 
 public enum OtpChannel
 {

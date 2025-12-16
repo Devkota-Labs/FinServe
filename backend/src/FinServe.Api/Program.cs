@@ -167,7 +167,7 @@ internal sealed class Program
             // Register Module Services
             // -----------------------------------------------
             builder.Services
-                .AddSharedInfrastructure()
+                .AddSharedInfrastructure(builder.Configuration)
                 .AddSharedCommonModule(builder.Configuration)
                 .AddSharedLoggingModule(builder.Configuration)
                 .AddSharedSecurityModule(builder.Configuration)

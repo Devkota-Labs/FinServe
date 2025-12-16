@@ -12,7 +12,7 @@ internal sealed class PasswordReminderHostedService(ILogger logger, IServiceProv
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // Cron-like: run once every day at configured hour (or fallback to every 24 hours).
-        var runHour = configuration.GetValue<int?>("ScheduledJobs:PasswordExpiryCheckHourUtc") ?? -1;
+        var runHour = configuration.GetValue<int?>("AppConfig:ScheduledJobs:PasswordExpiryCheckHourUtc") ?? -1;
         var interval = TimeSpan.FromHours(24);
 
         Logger.Information("{Name} started.", Name);

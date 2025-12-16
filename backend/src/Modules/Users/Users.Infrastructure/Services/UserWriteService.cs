@@ -34,7 +34,7 @@ internal sealed class UserWriteService(ILogger logger, UserDbContext userDbConte
             IsApproved = false,
             PasswordHash = dto.Password,
             PasswordLastChanged = DateTime.UtcNow,
-            PasswordExpiryDate = DateTime.UtcNow.AddDays(configuration.GetValue("Security:PasswordExpiryDays", 90))
+            PasswordExpiryDate = DateTime.UtcNow.AddDays(configuration.GetValue("AppConfig:Security:PasswordExpiryDays", 90))
         };
 
         userDbContext.Users.Add(entity);
@@ -123,7 +123,7 @@ internal sealed class UserWriteService(ILogger logger, UserDbContext userDbConte
         var user = await userDbContext.Users.FirstAsync(x => x.Id == userId, cancellationToken).ConfigureAwait(false);
         user.PasswordHash = hash;
         user.PasswordLastChanged = DateTime.UtcNow;
-        user.PasswordExpiryDate = DateTime.UtcNow.AddDays(configuration.GetValue("Security:PasswordExpiryDays", 90));
+        user.PasswordExpiryDate = DateTime.UtcNow.AddDays(configuration.GetValue("AppConfig:Security:PasswordExpiryDays", 90));
 
         await userDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }

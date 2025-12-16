@@ -11,7 +11,7 @@ public static class TokenValidationParametersFactory
     {
         ArgumentNullException.ThrowIfNull(config);
 
-        var secret = config["Jwt:Key"] ?? string.Empty;
+        var secret = config["AppConfig:Jwt:Key"] ?? string.Empty;
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         return new TokenValidationParameters
         {
@@ -20,8 +20,8 @@ public static class TokenValidationParametersFactory
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = key,                
-            ValidIssuer = config["Jwt:Issuer"],
-            ValidAudience = config["Jwt:Audience"],
+            ValidIssuer = config["AppConfig:Jwt:Issuer"],
+            ValidAudience = config["AppConfig:Jwt:Audience"],
             RoleClaimType = ClaimTypes.Role,
         };
     }

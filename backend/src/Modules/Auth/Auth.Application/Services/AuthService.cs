@@ -9,6 +9,8 @@ using Serilog;
 using Shared.Application.Interfaces;
 using Shared.Application.Results;
 using Shared.Common.Services;
+using Shared.Common.Utils;
+using Shared.Infrastructure.Options;
 using Shared.Security;
 using Users.Application.Dtos.User;
 using Users.Application.Interfaces.Services;
@@ -22,7 +24,10 @@ internal sealed class AuthService(ILogger logger,
     IPasswordHasher passwordHasher, 
     IPasswordPolicyService passwordPolicyService,
     IPasswordHistoryService passwordHistoryService, 
-    IEmailSender emailSender, 
+    IEmailService emailService, 
+    IEmailTemplateRenderer emailTemplateRenderer,
+    IOptions<TokenOptions> tokenOptions,
+    IOptions<OtpOptions> otpOptions,
     ISmsSender? smsSender, 
     IOtpGenerator otpGenerator, 
     IOtpRepository otpRepository, 
@@ -37,6 +42,9 @@ internal sealed class AuthService(ILogger logger,
     )
     : BaseService(logger.ForContext<AuthService>(), null), IAuthService
 {
+    private readonly TokenOptions _tokenOptions = tokenOptions.Value;
+    private readonly OtpOptions _otpOptions = otpOptions.Value;
+
     // ======================================================
     // 1. Register
     // ======================================================
@@ -80,21 +88,26 @@ internal sealed class AuthService(ILogger logger,
             return Result<RegisterResponseDto>.Fail($"Failed to send verification email to {dto.Email}");
         }
 
-        var adminEmail = configuration["Admin:NotificationEmail"];
+        var adminEmail = configuration["AppConfig:Admin:NotificationEmail"];
 
         if (!string.IsNullOrEmpty(adminEmail))
         {
-            string emailBody = $@"
-                                    <p>Hello <strong>Admin User</strong>,</p>
-                                    <p>Welcome to FinServe!</p>
-                                    <p style='padding:10px 20px; background:#4f46e5; color:white; text-decoration:none; border-radius:6px;'>
-                                          User {authUserDto.FullName} email {authUserDto.Email} registered. Id:{authUserDto.Id}
-                                       </a>
-                                    </p>
-                                    <p>If you didn’t create this account, you can safely ignore this email.</p>
-                                    ";
+            var baseUrl = appUrlProvider.GetBaseUrl();
 
-            await emailSender.SendEmailAsync(adminEmail, "New user pending approval", emailBody, cancellationToken).ConfigureAwait(false);
+            var verificationVersion = configuration.GetValue("AppConfig:Api:ApprovedUserVerificationVersion", "1");
+
+            string verificationUrl = $"{baseUrl}api/v{verificationVersion}/auth/verify-email?email={Uri.EscapeDataString(authUserDto.Email)}";
+
+            var html = emailTemplateRenderer.Render(
+            "AdminUserApproval.html",
+            new
+            {
+                UserName = authUserDto.FullName,
+                UserEmail = authUserDto.Email,
+                ApproveLink = verificationUrl,
+            });
+
+            await emailService.SendAsync(adminEmail, "New user approval required", html, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         // Optional: send mobile OTP
@@ -153,15 +166,13 @@ internal sealed class AuthService(ILogger logger,
         if (user.IsEmailVerified)
             return Result.Fail("Email already verified.");
 
-        var expiryHours = configuration.GetValue("Smtp:VerificationExpiryHours", 24);
-
         var emailVerification = new OtpVerification
         {
             UserId = user.Id,
             Purpose = OtpPurpose.EmailVerification,
             Token = otpGenerator.GenerateSecureToken(),
             CreatedAt = DateTime.UtcNow,
-            ExpiresAt = DateTime.UtcNow.AddHours(expiryHours),
+            ExpiresAt = DateTime.UtcNow.AddMinutes(_tokenOptions.EmailVerificationExpiryMinutes),
 
         };
 
@@ -173,20 +184,18 @@ internal sealed class AuthService(ILogger logger,
 
         string verificationUrl = $"{baseUrl}api/v{emailVerificationVersion}/auth/verify-email?email={Uri.EscapeDataString(user.Email)}&token={emailVerification.Token}";
 
-        string body = $@"
-                <p>Hello <strong>{user.FullName}</strong>,</p>
-                <p>Welcome to FinServe!</p>
-                <p>Please click the button below to verify your account:</p>
-                <p><a href='{verificationUrl}' 
-                      style='padding:10px 20px; background:#4f46e5; color:white; text-decoration:none; border-radius:6px;'>
-                      Verify Email
-                   </a>
-                </p>
-                <p>This link will expire in {expiryHours} hour.</p>
-                <p>If you didn’t create this account, you can safely ignore this email.</p>
-                ";
+        var html = emailTemplateRenderer.Render(
+            "EmailVerification.html",
+            new
+            {
+                AppName = "FinServe",
+                Year = DateTime.UtcNow.Year,
+                UserName = user.UserName,
+                VerificationLink = verificationUrl,
+                ExpiryTimeInHours = TimeSpan.FromMinutes(_tokenOptions.EmailVerificationExpiryMinutes).TotalHours,
+            });
 
-        await emailSender.SendEmailAsync(user.Email, "Verify your account", body, cancellationToken).ConfigureAwait(false);
+        await emailService.SendAsync(user.Email, "Verify your email", html, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return Result.Ok("Email sent successfully.");
     }
@@ -250,23 +259,25 @@ internal sealed class AuthService(ILogger logger,
         if (user is null)
             return Result.Fail("User not found.");
 
-        var otpChannel = configuration.GetValue("Sms:OtpChannel", OtpChannel.Email);
-        var otpLength = configuration.GetValue("Sms:OtpLength", 6);
-        var expiryMinutes = configuration.GetValue("Sms:VerificationExpiryMinute", 15);
-
-        var otp = GenerateOtp(user.Id, otpLength, dto.Purpose, expiryMinutes);
+        var otp = GenerateOtp(user.Id, _otpOptions.Length, dto.Purpose, _otpOptions.ExpiryMinutes);
 
         await otpRepository.AddAsync(otp, cancellationToken).ConfigureAwait(false);
 
-        if (otpChannel == OtpChannel.Email)
+        if (_otpOptions.Channel == OtpChannel.Email)
         {
-            await emailSender.SendEmailAsync(
-                user.Email,
-                "Your OTP Code",
-                $"Your OTP is {otp.Token}",
-                cancellationToken).ConfigureAwait(false);
+            var html = emailTemplateRenderer.Render(
+                "OtpEmail.html",
+                new
+                {
+                    UserName = user.FullName,
+                    Otp = otp,
+                    ExpiryMinutes = _otpOptions.ExpiryMinutes
+                });
+
+
+            await emailService.SendAsync(user.Email, "Your Verification Code", html, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
-        else if (otpChannel == OtpChannel.Mobile && smsSender != null)
+        else if (_otpOptions.Channel == OtpChannel.Mobile && smsSender != null)
         {
             await smsSender.SendSmsAsync(user.MobileNo!, $"Your OTP is {otp.Token}", cancellationToken).ConfigureAwait(false);
         }
@@ -439,32 +450,33 @@ internal sealed class AuthService(ILogger logger,
         if (user is null)
             return Result.Ok("If account exists, a reset link has been sent.");
 
-        var expiryHours = configuration.GetValue("Smtp:VerificationExpiryHours", 24);
-
         var passwordRest = new OtpVerification
         {
             UserId = user.Id,
             Purpose = OtpPurpose.PasswordReset,
             Token = otpGenerator.GenerateSecureToken(),
             CreatedAt = DateTime.UtcNow,
-            ExpiresAt = DateTime.UtcNow.AddHours(expiryHours),
+            ExpiresAt = DateTime.UtcNow.AddMinutes(_tokenOptions.PasswordResetExpiryMinutes),
         };
 
-        var resetUrl = $"{dto.RedirectUrl}/{Uri.EscapeDataString(passwordRest.Token)}";
+        var baseUrl = appUrlProvider.GetBaseUrl();
 
-        string body = $@"
-                        <p>Hello <strong>{user.FullName}</strong>,</p>
-                        <p>Welcome to FinServe!</p>
-                        <p><a href='{resetUrl}' 
-                                style='padding:10px 20px; background:#4f46e5; color:white; text-decoration:none; border-radius:6px;'>
-                                Reset Password
-                            </a>
-                        </p>
-                        <p>This link will expire in {expiryHours} hour.</p>
-                        <p>If you didn’t create this account, you can safely ignore this email.</p>
-                        ";
+        var verificationVersion = configuration.GetValue("AppConfig:Api:PasswordResetVerificationVersion", "1");
 
-        await emailSender.SendEmailAsync(user.Email, "Password reset request", body, cancellationToken).ConfigureAwait(false);
+        string verificationUrl = $"{baseUrl}api/v{verificationVersion}/auth/verify-reset-password?email={Uri.EscapeDataString(user.Email)}&token={passwordRest.Token}";
+
+        var html = emailTemplateRenderer.Render(
+            "PasswordReset.html",
+            new
+            {
+                AppName = "FinServe",
+                Year = DateTime.UtcNow.Year,
+                UserName = user.UserName,
+                ResetLink = verificationUrl,
+                ExpiryTimeInMinutes = _tokenOptions.PasswordResetExpiryMinutes,
+            });
+
+        await emailService.SendAsync(user.Email, "Reset your password", html, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return Result.Ok("If account exists, a reset link has been sent.");
     }
@@ -501,16 +513,15 @@ internal sealed class AuthService(ILogger logger,
         //Adding password history
         await passwordHistoryService.SaveAsync(user.Id, newHash, cancellationToken).ConfigureAwait(false);
 
-        string body = $@"
-                <p>Hello <strong>{user.FullName}</strong>,</p>
-                <p>Welcome to FinServe!</p>
-                <p style='padding:10px 20px; background:#4f46e5; color:white; text-decoration:none; border-radius:6px;'>
-                      Your password has been reset successfully.
-                </p>
-                <p>If you didn’t create this account, you can safely ignore this email.</p>
-                ";
+        var html = emailTemplateRenderer.Render(
+            "PasswordResetSuccess.html",
+            new
+            {
+                UserName = user.UserName,
+                Timestamp = DateTimeUtil.Now.ToString("f")
+            });
 
-        await emailSender.SendEmailAsync(user.Email, "Password Reset Successful", body, cancellationToken).ConfigureAwait(false);
+        await emailService.SendAsync(user.Email, "Your password has been reset", html, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return Result.Ok("Password reset successful.");
     }
@@ -543,16 +554,15 @@ internal sealed class AuthService(ILogger logger,
         //Adding password history
         await passwordHistoryService.SaveAsync(user.Id, newHash, cancellationToken).ConfigureAwait(false);
 
-        string body = $@"
-                <p>Hello <strong>{user.FullName}</strong>,</p>
-                <p>Welcome to FinServe!</p>
-                <p style='padding:10px 20px; background:#4f46e5; color:white; text-decoration:none; border-radius:6px;'>
-                      Your password has been Changed successfully.
-                </p>
-                <p>If you didn’t create this account, you can safely ignore this email.</p>
-                ";
+        var html = emailTemplateRenderer.Render(
+            "PasswordChanged.html",
+            new
+            {
+                UserName = user.UserName,
+                Timestamp = DateTimeUtil.Now.ToString("f")
+            });
 
-        await emailSender.SendEmailAsync(user.Email, "Password Changed Successful", body, cancellationToken).ConfigureAwait(false);
+        await emailService.SendAsync(user.Email, "Your password was changed", html, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return Result.Ok("Password Changed successful.");
     }
