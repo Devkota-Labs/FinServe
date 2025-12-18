@@ -15,4 +15,8 @@ public interface IUserWriteService
     Task MarkMobileVerifiedAsync(int userId, CancellationToken cancellationToken = default);
     Task MarkFailedLogin(int userId, CancellationToken cancellationToken = default);
     Task MarkSuccessLogin(int userId, CancellationToken cancellationToken = default);
+
+    Task ApproveUser(int userId, CancellationToken cancellationToken = default);
+    Task UnlockUser(int userId, CancellationToken cancellationToken = default);
+    Task AssignRoles(int userId, ICollection<int> roleIds, CancellationToken cancellationToken = default);
 }

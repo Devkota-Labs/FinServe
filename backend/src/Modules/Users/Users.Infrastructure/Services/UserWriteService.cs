@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Auth.Application.Interfaces.Services;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 using Shared.Application.Dtos;
@@ -10,7 +11,7 @@ using Users.Infrastructure.Db;
 
 namespace Users.Infrastructure.Services;
 
-internal sealed class UserWriteService(ILogger logger, UserDbContext userDbContext, IConfiguration configuration)
+internal sealed class UserWriteService(ILogger logger, UserDbContext userDbContext, IConfiguration configuration, ILoginHistoryService loginHistoryService)
     : BaseService(logger.ForContext<UserWriteService>(), null), IUserWriteService
 {
     public async Task<AuthUserDto> CreateUserAsync(CreateUserDto dto, CancellationToken cancellationToken = default)
@@ -124,6 +125,70 @@ internal sealed class UserWriteService(ILogger logger, UserDbContext userDbConte
         user.PasswordHash = hash;
         user.PasswordLastChanged = DateTime.UtcNow;
         user.PasswordExpiryDate = DateTime.UtcNow.AddDays(configuration.GetValue("AppConfig:Security:PasswordExpiryDays", 90));
+
+        await userDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task ApproveUser(int userId, CancellationToken cancellationToken = default)
+    {
+        var user = await userDbContext.Users.FirstAsync(x => x.Id == userId, cancellationToken).ConfigureAwait(false);
+        user.IsApproved = true;
+
+        await userDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task UnlockUser(int userId, CancellationToken cancellationToken = default)
+    {
+        var user = await userDbContext.Users.FirstAsync(x => x.Id == userId, cancellationToken).ConfigureAwait(false);
+
+        // Update fields
+        user.LockoutEndAt = null;
+        user.FailedLoginCount = 0;
+
+        //ToDo LoginHistory should be updated
+        //// Create a login history entry if the table exists in your DbContext
+        //var history = new LoginHistory
+        //{
+        //    UserId = user.Id,
+        //    LogoutTime = null,
+        //    IpAddress = ip,
+        //    //Device = Request.Headers["User-Agent"].ToString(),
+        //    Status = Status.SUCCESS,
+        //    //Message = "Account unlocked by admin"
+        //};
+
+        //loginHistoryService.LogoutAsync()
+
+        //ToDo DashboardAlert should be updated
+        //var alert = new DashboardAlert
+        //{
+        //    UserId = user.Id,
+        //    Title = "Account Unlocked",
+        //    Message = "Your account has been unlocked by an administrator. Please login and verify.",
+        //    IsRead = false,
+        //    CreatedTime = DateTime.UtcNow
+        //};
+        //_db.DashboardAlerts.Add(alert);
+        //await _db.SaveChangesAsync().ConfigureAwait(false);
+
+        await userDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task AssignRoles(int userId, ICollection<int> roleIds, CancellationToken cancellationToken = default)
+    {
+        // remove existing roles
+        var existing = await userDbContext.UserRoles.Where(ur => ur.UserId == userId).ToListAsync(cancellationToken).ConfigureAwait(false);
+        userDbContext.UserRoles.RemoveRange(existing);
+
+        // add new roles
+        foreach (var roleId in roleIds)
+        {
+            userDbContext.UserRoles.Add(new UserRole
+            {
+                UserId = userId,
+                RoleId = roleId
+            });
+        }
 
         await userDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }

@@ -1,4 +1,5 @@
-﻿using Asp.Versioning;
+﻿using Admin.Infrastructure.Module;
+using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Auth.Infrastructure.Module;
 using FinServe.Api.Configurations;
@@ -125,6 +126,7 @@ internal sealed class Program
                 .AddApplicationPart(typeof(Location.Api.AssemblyReference).Assembly)
                 .AddApplicationPart(typeof(Users.Api.AssemblyReference).Assembly)
                 .AddApplicationPart(typeof(Lookup.Api.AssemblyReference).Assembly)
+                .AddApplicationPart(typeof(Admin.Api.AssemblyReference).Assembly)
                 ;
             ;
 
@@ -176,6 +178,7 @@ internal sealed class Program
                 .AddLocationModule(builder.Configuration)
                 .AddUserModule(builder.Configuration)
                 .AddAuthModule(builder.Configuration)
+                .AddAdminModule(builder.Configuration)
                 .AddLookupApplication()
                 ;
 
@@ -238,6 +241,7 @@ internal sealed class Program
             app.AddLocationMigrations();
             app.AddUserMigrations();
             app.AddAuthMigrations();
+            app.AddAdminMigrations();
 
             //if (app.Environment.IsDevelopment())
             {

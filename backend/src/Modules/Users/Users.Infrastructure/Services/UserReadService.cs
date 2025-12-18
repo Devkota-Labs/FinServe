@@ -74,6 +74,17 @@ internal sealed class UserReadService(ILogger logger, UserDbContext userDbContex
             .ToListAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<ICollection<PendingUserDto>> GetUnApprovedUsers(CancellationToken cancellationToken = default)
+    {
+        return await userDbContext.Users
+            .AsNoTracking()
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .Where(u => u.IsActive && !u.IsApproved)
+            .Select(ToPendingUser())
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     // Mapping Expression
     private static Expression<Func<User, AuthUserDto>> ToAuthUser()
         => x => new AuthUserDto
@@ -95,4 +106,7 @@ internal sealed class UserReadService(ILogger logger, UserDbContext userDbContex
             PasswordExpiryDate = x.PasswordExpiryDate,
             Roles = x.UserRoles.Select(r => r.Role.Name).ToList()
         };
+
+    private static Expression<Func<User, PendingUserDto>> ToPendingUser()
+        => x => new PendingUserDto(x.Id, x.UserName, x.FullName, x.Email,x.Mobile,x.IsApproved, x.EmailVerified, x.MobileVerified, x.IsActive, x.CreatedTime);
 }
