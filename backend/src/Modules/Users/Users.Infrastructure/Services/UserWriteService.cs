@@ -1,5 +1,4 @@
-﻿using Auth.Application.Interfaces.Services;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 using Shared.Application.Dtos;
@@ -11,7 +10,7 @@ using Users.Infrastructure.Db;
 
 namespace Users.Infrastructure.Services;
 
-internal sealed class UserWriteService(ILogger logger, UserDbContext userDbContext, IConfiguration configuration, ILoginHistoryService loginHistoryService)
+internal sealed class UserWriteService(ILogger logger, UserDbContext userDbContext, IConfiguration configuration)
     : BaseService(logger.ForContext<UserWriteService>(), null), IUserWriteService
 {
     public async Task<AuthUserDto> CreateUserAsync(CreateUserDto dto, CancellationToken cancellationToken = default)

@@ -5,9 +5,9 @@ namespace Shared.Application.Responses;
 public class ApiResponse
 {
     public bool Success { get; set; }
-    public string Message { get; set; } = null!;
-    public string Code { get; set; } = null!;
-    public object Data { get; set; } = null!;
+    public string? Message { get; set; } = null!;
+    public string? Code { get; set; } = null!;
+    public object? Data { get; set; } = null!;
     public ICollection<ValidationError> Errors { get; set; } = null!;
 
     public static ApiResponse FromResult(Result r)
