@@ -1,9 +1,9 @@
-import ActivityForm from "@/components/forms/AddActivityForm";
+import RoleAssignmentPage from "@/components/forms/user-management/RoleAssignmentForm";
 
 export default function assignRoles() {
   return (
-    <div className="max-w-3xl mx-auto mt-12 p-6">
-      <ActivityForm />
+    <div >
+      <RoleAssignmentPage />
     </div>
   );
 }
