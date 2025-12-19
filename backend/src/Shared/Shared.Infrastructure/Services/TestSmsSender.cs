@@ -4,7 +4,7 @@ using Shared.Common.Services;
 
 namespace Shared.Infrastructure.Services;
 
-internal sealed class TestSmsSender(ILogger logger, IEmailTemplateRenderer emailTemplateRenderer, IEmailService emailService)
+internal sealed class TestSmsSender(ILogger logger)
     : BaseService(logger.ForContext<TestSmsSender>(), null), ISmsSender
 {
     public async Task SendSmsAsync(string mobileNo, string message, CancellationToken cancellationToken = default)

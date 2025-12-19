@@ -4,17 +4,17 @@ using System.Text;
 
 namespace Shared.Infrastructure.Services;
 
-internal class EmailTemplateRenderer : IEmailTemplateRenderer
+internal sealed class EmailTemplateRenderer : IEmailTemplateRenderer
 {
     private const string TemplatePath = "Shared.Common.EmailTemplates";
-    private static readonly Assembly TemplateAssembly = typeof(Shared.Common.AssemblyMarker).Assembly;
+    private static readonly Assembly TemplateAssembly = typeof(Common.AssemblyMarker).Assembly;
     public string Render(string templateName, object model)
     {
         var layout = Load("Layout.html");
         var body = Load(templateName);
 
         var mergedBody = ReplaceTokens(body, model);
-        var finalHtml = layout.Replace("{{Body}}", mergedBody);
+        var finalHtml = layout.Replace("{{Body}}", mergedBody, StringComparison.InvariantCultureIgnoreCase);
 
         return ReplaceTokens(finalHtml, model);
     }
@@ -37,7 +37,7 @@ internal class EmailTemplateRenderer : IEmailTemplateRenderer
         {
             var token = $"{{{{{prop.Name}}}}}";
             var value = prop.GetValue(model)?.ToString() ?? string.Empty;
-            content = content.Replace(token, value);
+            content = content.Replace(token, value, StringComparison.InvariantCultureIgnoreCase);
         }
         return content;
     }

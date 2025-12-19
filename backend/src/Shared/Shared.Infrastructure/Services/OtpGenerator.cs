@@ -1,5 +1,6 @@
 ﻿using Serilog;
 using Shared.Application.Interfaces.Services;
+using Shared.Common;
 using Shared.Common.Services;
 using System.Security.Cryptography;
 using System.Text;
@@ -12,7 +13,7 @@ internal sealed class OtpGenerator(ILogger logger) : BaseService(logger.ForConte
         var otp = new StringBuilder(length);
 
         foreach (var b in bytes)
-            otp.Append((b % 10).ToString());
+            otp.Append((b % 10).ToString(Constants.IFormatProvider));
 
         return otp.ToString();
     }
@@ -33,8 +34,8 @@ internal sealed class OtpGenerator(ILogger logger) : BaseService(logger.ForConte
     {
         var bytes = RandomNumberGenerator.GetBytes(length);
         return Convert.ToBase64String(bytes)
-            .Replace("/", "_")
-            .Replace("+", "-")
+            .Replace("/", "_", StringComparison.CurrentCultureIgnoreCase)
+            .Replace("+", "-", StringComparison.CurrentCultureIgnoreCase)
             .Substring(0, length);
     }
 }

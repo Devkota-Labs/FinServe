@@ -8,13 +8,12 @@ public class PaginatedResponse : ApiResponse
 
     public static PaginatedResponse FromPaginatedResult<T>(PaginatedResult<T> r)
     {
-        return new PaginatedResponse
+        var response = new PaginatedResponse
         {
             Success = r.Success,
             Message = r.Message,
             Code = r.ErrorCode,
             Data = r.Data,
-            Errors = r.Errors,
             Pagination = new PaginationMetadata
             {
                 Page = r.Page,
@@ -23,5 +22,9 @@ public class PaginatedResponse : ApiResponse
                 TotalPages = r.TotalPages
             }
         };
+
+        response.AddErrors(r.Errors); 
+        
+        return response;
     }
 }

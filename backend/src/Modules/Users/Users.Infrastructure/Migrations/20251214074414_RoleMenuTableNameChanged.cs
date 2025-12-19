@@ -47,7 +47,7 @@ public partial class RoleMenuTableNameChanged : Migration
         migrationBuilder.CreateIndex(
             name: "IX_tbl_Users_RoleMenus_Role_Id_Menu_Id",
             table: "tbl_Users_RoleMenus",
-            columns: new[] { "Role_Id", "Menu_Id" },
+            columns: ["Role_Id", "Menu_Id"],
             unique: true);
 
         migrationBuilder.AddForeignKey(

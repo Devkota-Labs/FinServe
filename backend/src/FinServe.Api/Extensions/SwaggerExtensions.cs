@@ -12,7 +12,7 @@ public static partial class SwaggerExtensions
         //c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "API", Version = "v1" });
 
         c.MapType<ApiResponse>(() => new OpenApiSchema { Type = "object" });
-        c.MapType(typeof(PaginatedResponse), () => new OpenApiSchema { Type = "object" });
+        c.MapType<PaginatedResponse>(() => new OpenApiSchema { Type = "object" });
 
         // add global responses for common codes if desired (operation filter better)
     }

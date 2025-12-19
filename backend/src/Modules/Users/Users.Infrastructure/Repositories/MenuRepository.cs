@@ -35,7 +35,7 @@ internal sealed class MenuRepository(UserDbContext db) : IMenuRepository
             .FirstOrDefaultAsync(x => x.Name == name, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<ICollection<Menu>?> GetByUserIdAsync(int userId, CancellationToken cancellationToken = default)
+    public async Task<ICollection<Menu>> GetByUserIdAsync(int userId, CancellationToken cancellationToken = default)
     {
         //1 CHECK IF USER IS ADMIN
         bool isAdmin = await db.UserRoles

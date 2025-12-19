@@ -87,7 +87,7 @@ internal sealed class UserReadService(ILogger logger, UserDbContext userDbContex
 
     // Mapping Expression
     private static Expression<Func<User, AuthUserDto>> ToAuthUser()
-        => x => new AuthUserDto
+        => x => new AuthUserDto(x.UserRoles != null ? x.UserRoles.Select(r => r.Role.Name).ToList() : new List<string>())
         {
             Id = x.Id,
             UserName = x.UserName,
@@ -104,7 +104,6 @@ internal sealed class UserReadService(ILogger logger, UserDbContext userDbContex
             MfaEnabled = x.MfaEnabled,
             MfaSecret = x.MfaSecret,
             PasswordExpiryDate = x.PasswordExpiryDate,
-            Roles = x.UserRoles.Select(r => r.Role.Name).ToList()
         };
 
     private static Expression<Func<User, PendingUserDto>> ToPendingUser()

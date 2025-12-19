@@ -13,7 +13,7 @@ namespace Location.Infrastructure.Migrations;
 
 [DbContext(typeof(LocationDbContext))]
 [Migration("20251203184653_Location_Initial_Create")]
-partial class Location_Initial_Create
+partial class LocationInitialCreate
 {
     /// <inheritdoc />
     protected override void BuildTargetModel(ModelBuilder modelBuilder)

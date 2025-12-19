@@ -44,7 +44,7 @@ internal sealed class CityRepository(LocationDbContext db) : ICityRepository
             .ConfigureAwait(false);
     }
 
-    public async Task<List<City>?> GetByStateAsync(int stateId, CancellationToken cancellationToken = default)
+    public async Task<ICollection<City>> GetByStateAsync(int stateId, CancellationToken cancellationToken = default)
     {
         return await db.Cities
             .AsNoTracking()

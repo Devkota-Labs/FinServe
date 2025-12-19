@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace FinServe.Api.Middlewares;
 
-public sealed class DomainExceptionMiddleware(RequestDelegate next)
+internal sealed class DomainExceptionMiddleware(RequestDelegate next)
 {
     public async Task Invoke(HttpContext context)
     {

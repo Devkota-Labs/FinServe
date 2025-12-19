@@ -27,15 +27,15 @@ internal sealed class AdminService(
 
         if (pendingUsers == null)
         {
-            return Result<ICollection<PendingUserDto>>.Fail("Failed to fetch unapproved users.");
+            return Result.Fail<ICollection<PendingUserDto>>("Failed to fetch unapproved users.");
         }
 
         if (pendingUsers.Count == 0)
         {
-            return Result<ICollection<PendingUserDto>>.Ok("No unapproved users found.", pendingUsers);
+            return Result.Ok<ICollection<PendingUserDto>>("No unapproved users found.", null);
         }
 
-        return Result<ICollection<PendingUserDto>>.Ok(pendingUsers);
+        return Result.Ok(pendingUsers);
     }
 
     public async Task<Result> ApproveUser(int userId, CancellationToken cancellationToken = default)

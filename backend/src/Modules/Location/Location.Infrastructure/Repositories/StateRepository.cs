@@ -40,7 +40,7 @@ internal sealed class StateRepository(LocationDbContext db) : IStateRepository
             .ConfigureAwait(false);
     }
 
-    public async Task<List<State>?> GetByCountryAsync(int countryId, CancellationToken cancellationToken = default)
+    public async Task<ICollection<State>> GetByCountryAsync(int countryId, CancellationToken cancellationToken = default)
     {
         return await db.States
             .AsNoTracking()

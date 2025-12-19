@@ -23,7 +23,7 @@ public sealed class User : BaseAuditableEntity
     //public State? State { get; set; }
     //public City? City { get; set; }
     public Uri? ProfileImageUrl { get; set; }
-    public ICollection<UserRole>? UserRoles { get; }
+    public ICollection<UserRole> UserRoles { get; } = [];
     public bool IsActive { get; set; } = true;
     public bool IsApproved { get; set; }
     public bool EmailVerified { get; set; }

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Location.Infrastructure.Migrations;
 
 /// <inheritdoc />
-public partial class Location_Initial_Create : Migration
+public partial class LocationInitialCreate : Migration
 {
     /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)

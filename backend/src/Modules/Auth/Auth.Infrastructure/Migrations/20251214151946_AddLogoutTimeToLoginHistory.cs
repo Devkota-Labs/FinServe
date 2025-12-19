@@ -68,7 +68,7 @@ public partial class AddLogoutTimeToLoginHistory : Migration
         migrationBuilder.CreateIndex(
             name: "IX_tbl_Auth_LoginHistories_User_Id_Login_Time",
             table: "tbl_Auth_LoginHistories",
-            columns: new[] { "User_Id", "Login_Time" });
+            columns: ["User_Id", "Login_Time"]);
     }
 
     /// <inheritdoc />

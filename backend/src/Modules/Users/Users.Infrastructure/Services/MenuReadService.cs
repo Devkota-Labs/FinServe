@@ -10,7 +10,7 @@ namespace Users.Infrastructure.Services;
 internal sealed class MenuReadService(ILogger logger, IMenuRepository menuRepository)
     : BaseService(logger.ForContext<MenuReadService>(), null), IMenuReadService
 {
-    private List<MenuTreeDto> BuildMenuTree(ICollection<Menu> menus)
+    private static List<MenuTreeDto> BuildMenuTree(ICollection<Menu> menus)
     {
         var lookup = menus.ToDictionary(m => m.Id, m => new MenuTreeDto(m.Id, m.Name, m.Route ?? "", m.Icon ?? "", m.Sequence)
         {
@@ -21,7 +21,7 @@ internal sealed class MenuReadService(ILogger logger, IMenuRepository menuReposi
             Order = m.Sequence
         });
 
-        List<MenuTreeDto> roots = new();
+        List<MenuTreeDto> roots = [];
 
         foreach (var menu in menus)
         {
@@ -30,17 +30,21 @@ internal sealed class MenuReadService(ILogger logger, IMenuRepository menuReposi
                 // Root menu
                 roots.Add(lookup[menu.Id]);
             }
-            else if (lookup.ContainsKey(menu.ParentId.Value))
+            else if (lookup.TryGetValue(menu.ParentId.Value, out MenuTreeDto? value))
             {
-                // Child menu
-                lookup[menu.ParentId.Value].Children.Add(lookup[menu.Id]);
+                value.Children.Add(lookup[menu.Id]);
             }
         }
 
         // Sort children
         foreach (var item in lookup.Values)
         {
-            item.Children = [.. item.Children.OrderBy(c => c.Order)];
+            var orderd = item.Children.OrderBy(x => x.Order);
+
+            foreach (var childMenu in orderd)
+            {
+                item.Children.Add(childMenu);
+            }
         }
 
         // Sort roots

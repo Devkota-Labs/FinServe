@@ -2,6 +2,7 @@
 using Lookup.Application.Interfaces.Services;
 using Shared.Application.Attributes;
 using Shared.Application.Results;
+using Shared.Common;
 using System.Collections.Concurrent;
 using System.Reflection;
 
@@ -16,7 +17,7 @@ public sealed class EnumLookupProvider : ILookupProvider
     {
         return Cache.GetOrAdd(typeof(TEnum), _ =>
         {
-            return Result<IReadOnlyList<LookupItemDto>>.Ok(Enum.GetValues(typeof(TEnum))
+            return Result.Ok<IReadOnlyList<LookupItemDto>>(Enum.GetValues(typeof(TEnum))
                 .Cast<Enum>()
                 .Select(e =>
                 {
@@ -27,7 +28,7 @@ public sealed class EnumLookupProvider : ILookupProvider
                         return null;
 
                     return new LookupItemDto(
-                        Convert.ToInt32(e),
+                        Convert.ToInt32(e, Constants.IFormatProvider),
                         attr.Code,
                         attr.Label
                     );

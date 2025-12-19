@@ -40,7 +40,7 @@ internal sealed class UserWriteService(ILogger logger, UserDbContext userDbConte
         userDbContext.Users.Add(entity);
         await userDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-        return new AuthUserDto
+        return new AuthUserDto(entity.UserRoles != null ? entity.UserRoles.Select(r => r.Role.Name).ToList() : [])
         {
             Id = entity.Id,
             UserName = entity.UserName,
@@ -57,7 +57,6 @@ internal sealed class UserWriteService(ILogger logger, UserDbContext userDbConte
             MfaEnabled = entity.MfaEnabled,
             MfaSecret = entity.MfaSecret,
             PasswordExpiryDate = entity.PasswordExpiryDate,
-            Roles = entity.UserRoles != null ?  entity.UserRoles.Select(r => r.Role.Name).ToList() : []
         };
     }
 

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using Shared.Application.Api;
+using Shared.Common;
 using Users.Application.Dtos.User;
 using Users.Application.Interfaces.Services;
 
@@ -79,6 +80,6 @@ public sealed class UsersController(ILogger logger, IUserService userService)
     private int GetCurrentUserId()
     {
         var claim = User.Claims.FirstOrDefault(c => c.Type == "UserId");
-        return claim != null ? int.Parse(claim.Value) : 0;
+        return claim != null ? int.Parse(claim.Value, Constants.IFormatProvider) : 0;
     }
 }

@@ -19,17 +19,17 @@ internal sealed class RoleService(ILogger logger, IRoleRepository repo)
 
         var result = entities.Select(Map).ToList();
 
-        return Result<ICollection<RoleDto>>.Ok(result);
+        return Result.Ok<ICollection<RoleDto>>(result);
     }
 
-    public async Task<Result<RoleDto?>> GetByIdAsync(int id, CancellationToken cancellationToken)
+    public async Task<Result<RoleDto>> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
         var entities = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entities == null)
-            return Result<RoleDto?>.Fail("Role not found");
+            return Result.Fail<RoleDto>("Role not found");
 
-        return Result<RoleDto?>.Ok(Map(entities));
+        return Result.Ok(Map(entities));
     }
 
     public async Task<Result<RoleDto>> CreateAsync(CreateRoleDto dto, CancellationToken cancellationToken)
@@ -38,7 +38,7 @@ internal sealed class RoleService(ILogger logger, IRoleRepository repo)
 
         if (exists is not null)
         {
-            return Result<RoleDto>.Fail($"Role with name {exists.Name} already exists.");
+            return Result.Fail<RoleDto>($"Role with name {exists.Name} already exists.");
         }
 
         var newEntity = new Role
@@ -50,7 +50,7 @@ internal sealed class RoleService(ILogger logger, IRoleRepository repo)
 
         await repo.AddAsync(newEntity, cancellationToken).ConfigureAwait(false);
 
-        return Result<RoleDto>.Ok("Role created successfully.", Map(newEntity));
+        return Result.Ok("Role created successfully.", Map(newEntity));
     }
 
     public async Task<Result<RoleDto>> UpdateAsync(int id, UpdateRoleDto dto, CancellationToken cancellationToken)
@@ -58,7 +58,7 @@ internal sealed class RoleService(ILogger logger, IRoleRepository repo)
         var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)
-            return Result<RoleDto>.Fail("Role not found.");
+            return Result.Fail<RoleDto>("Role not found.");
 
         if (dto.Name is not null)
         {
@@ -66,7 +66,7 @@ internal sealed class RoleService(ILogger logger, IRoleRepository repo)
 
             if (exists is not null)
             {
-                return Result<RoleDto>.Fail($"Role with name {exists.Name} already exists.");
+                return Result.Fail<RoleDto>($"Role with name {exists.Name} already exists.");
             }
 
             entity.Name = dto.Name;
@@ -77,7 +77,7 @@ internal sealed class RoleService(ILogger logger, IRoleRepository repo)
 
         await repo.UpdateAsync(entity, cancellationToken).ConfigureAwait(false);
 
-        return Result<RoleDto>.Ok("Role updated successfully", Map(entity));
+        return Result.Ok("Role updated successfully", Map(entity));
     }
 
     public async Task<Result<RoleDto>> DeleteAsync(int id, CancellationToken cancellationToken)
@@ -85,28 +85,28 @@ internal sealed class RoleService(ILogger logger, IRoleRepository repo)
         var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)
-            return Result<RoleDto>.Fail("Role not found.");
+            return Result.Fail<RoleDto>("Role not found.");
 
         await repo.DeleteAsync(entity, cancellationToken).ConfigureAwait(false);
 
-        return Result<RoleDto>.Ok("Role deleted successfully.", Map(entity));
+        return Result.Ok("Role deleted successfully.", Map(entity));
     }
 
-    public async Task<Result<ICollection<MenuDto>?>> GetMenus(int roleId, CancellationToken cancellationToken)
+    public async Task<Result<ICollection<MenuDto>>> GetMenus(int roleId, CancellationToken cancellationToken)
     {
         var entity = await repo.GetByIdAsync(roleId, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)
-            return Result<ICollection<MenuDto>?>.Fail("Role not found.");
+            return Result.Fail<ICollection<MenuDto>>("Role not found.");
 
         if (entity.RoleMenus is null)
         {
-            return Result<ICollection<MenuDto>?>.Fail($"No menus are assigned to role {entity.Name}");
+            return Result.Fail<ICollection<MenuDto>>($"No menus are assigned to role {entity.Name}");
         }
 
         var menus = entity.RoleMenus.Select(roleMenu => new MenuDto(roleMenu.MenuId, roleMenu.Menu.Name, roleMenu.Menu.Route, roleMenu.Menu.Icon, roleMenu.Menu.Sequence)).ToList();
 
-        return Result<ICollection<MenuDto>?>.Ok(menus);
+        return Result.Ok<ICollection<MenuDto>>(menus);
     }
 
     public async Task<Result<RoleDto>> AssignMenus(int roleId, AssignMenusDto dto, CancellationToken cancellationToken)
@@ -114,11 +114,11 @@ internal sealed class RoleService(ILogger logger, IRoleRepository repo)
         var entity = await repo.GetByIdAsync(roleId, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)
-            return Result<RoleDto>.Fail("Role not found.");
+            return Result.Fail<RoleDto>("Role not found.");
 
         await repo.AssignMenusAsync(roleId, dto.MenuIds, cancellationToken).ConfigureAwait(false);
 
-        return Result<RoleDto>.Ok("Menus assigned successfully.", Map(entity));
+        return Result.Ok("Menus assigned successfully.", Map(entity));
     }
 
     private static RoleDto Map(Role role)

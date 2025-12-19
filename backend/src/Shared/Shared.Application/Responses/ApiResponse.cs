@@ -8,8 +8,12 @@ public class ApiResponse
     public string? Message { get; set; } = null!;
     public string? Code { get; set; } = null!;
     public object? Data { get; set; } = null!;
-    public ICollection<ValidationError> Errors { get; set; } = null!;
+    public ICollection<ValidationError> Errors { get; private set; } = null!;
 
+    protected void AddErrors(ICollection<ValidationError> errors)
+    {
+        Errors = errors;
+    }
     public static ApiResponse FromResult(Result r)
     {
         return new ApiResponse

@@ -6,5 +6,5 @@ namespace Location.Application.Interfaces.Services;
 
 public interface IStateService : IService<StateDto, CreateStateDto, UpdateStateDto>
 {
-    Task<Result<ICollection<StateDto>?>> GetByCountryAsync(int countryId, CancellationToken cancellationToken);
+    Task<Result<ICollection<StateDto>>> GetByCountryAsync(int countryId, CancellationToken cancellationToken);
 }

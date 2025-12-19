@@ -19,6 +19,7 @@ internal sealed class PasswordReminderHostedService(ILogger logger, IServiceProv
 
         while (!stoppingToken.IsCancellationRequested)
         {
+#pragma warning disable CA1031 // Do not catch general exception types
             try
             {
                 using var scope = serviceProvider.CreateScope();
@@ -52,6 +53,7 @@ internal sealed class PasswordReminderHostedService(ILogger logger, IServiceProv
                 // On error, wait a short time then retry
                 await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken).ConfigureAwait(false);
             }
+#pragma warning restore CA1031 // Do not catch general exception types
         }
 
         Logger.Information("{Name} stopping.", Name);

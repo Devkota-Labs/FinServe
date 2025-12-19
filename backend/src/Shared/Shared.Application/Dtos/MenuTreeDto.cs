@@ -2,5 +2,5 @@
 
 public sealed record MenuTreeDto(int Id, string Name, string Route, string Icon, int Order)
 {
-    public ICollection<MenuTreeDto> Children { get; set; } = [];
+    public ICollection<MenuTreeDto> Children { get; private set; } = [];
 }

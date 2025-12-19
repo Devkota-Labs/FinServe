@@ -39,6 +39,7 @@ internal sealed class Program
     private static ILogger? _logger;
     public static async Task Main(string[] args)
     {
+#pragma warning disable CA1031 // Do not catch general exception types
         try
         {
             var mainThreadName = "Main Thread";
@@ -112,8 +113,9 @@ internal sealed class Program
                 {
                     options.InvalidModelStateResponseFactory = context =>
                     {                        var errors = context.ModelState
-                        .Where(kvp => kvp.Value.Errors.Any())
-                        .SelectMany(kvp => kvp.Value.Errors.Select(e =>
+                        .Where(kvp => kvp.Value != null && kvp.Value.Errors.Any())
+                        .SelectMany(kvp => kvp.Value is null ? [] : kvp.Value.Errors
+                        .Select(e =>
                         new ValidationError(kvp.Key, e.ErrorMessage)))
                         .ToList();
 
@@ -301,6 +303,7 @@ internal sealed class Program
             OnApplicationStopping();
             OnApplicationStopped();
         }
+#pragma warning restore CA1031 // Do not catch general exception types
     }
 
     private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)

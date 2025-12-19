@@ -19,39 +19,39 @@ internal sealed class UserService(ILogger logger, IUserRepository repo, IPasswor
 
         var result = entities.Select(Map).ToList();
 
-        return Result<ICollection<UserDto>>.Ok(result);
+        return Result.Ok<ICollection<UserDto>>(result);
     }
 
-    public async Task<Result<UserDto?>> GetByIdAsync(int id, CancellationToken cancellationToken)
+    public async Task<Result<UserDto>> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
         var entities = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entities == null)
-            return Result<UserDto?>.Fail($"User not found with id {id}");
+            return Result.Fail<UserDto>($"User not found with id {id}");
 
-        return Result<UserDto?>.Ok(Map(entities));
+        return Result.Ok(Map(entities));
     }
 
     public async Task<Result<UserDto>> CreateAsync(CreateUserDto dto, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
-            return Result<UserDto>.Fail("Email or password required.");
+            return Result.Fail<UserDto>("Email or password required.");
 
         var (valid, message) = passwordPolicyService.ValidatePassword(dto.Password);
 
         if (!valid)
-            return Result<UserDto>.Fail(message);
+            return Result.Fail<UserDto>(message);
 
         var emailExists = await repo.GetByEmailAsync(dto.Email, cancellationToken).ConfigureAwait(false);
 
         if (emailExists != null)
-            return Result<UserDto>.Fail("Email already exists.");
+            return Result.Fail<UserDto>("Email already exists.");
 
         var userNameExists = await repo.GetByNameAsync(dto.UserName, cancellationToken).ConfigureAwait(false);
 
         if (userNameExists is not null)
         {
-            return Result<UserDto>.Fail($"User with name {userNameExists.FullName} already exists.");
+            return Result.Fail<UserDto>($"User with name {userNameExists.FullName} already exists.");
         }
 
         var newEntity = new User
@@ -78,7 +78,7 @@ internal sealed class UserService(ILogger logger, IUserRepository repo, IPasswor
 
         await repo.AddAsync(newEntity, cancellationToken).ConfigureAwait(false);
 
-        return Result<UserDto>.Ok("User created successfully.", Map(newEntity));
+        return Result.Ok("User created successfully.", Map(newEntity));
     }
 
     public async Task<Result<UserDto>> UpdateAsync(int id, UpdateUserDto dto, CancellationToken cancellationToken)
@@ -86,7 +86,7 @@ internal sealed class UserService(ILogger logger, IUserRepository repo, IPasswor
         var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)
-            return Result<UserDto>.Fail("User not found.");
+            return Result.Fail<UserDto>("User not found.");
 
         // Basic info
         if (dto.FirstName is not null) entity.FirstName = dto.FirstName;
@@ -104,7 +104,7 @@ internal sealed class UserService(ILogger logger, IUserRepository repo, IPasswor
 
         await repo.UpdateAsync(entity, cancellationToken).ConfigureAwait(false);
 
-        return Result<UserDto>.Ok("User updated successfully", Map(entity));
+        return Result.Ok("User updated successfully", Map(entity));
     }
 
     public async Task<Result<UserDto>> DeleteAsync(int id, CancellationToken cancellationToken)
@@ -112,27 +112,27 @@ internal sealed class UserService(ILogger logger, IUserRepository repo, IPasswor
         var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)
-            return Result<UserDto>.Fail("User not found.");
+            return Result.Fail<UserDto>("User not found.");
 
         await repo.DeleteAsync(entity, cancellationToken).ConfigureAwait(false);
 
-        return Result<UserDto>.Ok("User deleted successfully.", Map(entity));
+        return Result.Ok("User deleted successfully.", Map(entity));
     }
-    public async Task<Result<UserProfileDto?>> GetProfile(int id, CancellationToken cancellationToken = default)
+    public async Task<Result<UserProfileDto>> GetProfile(int id, CancellationToken cancellationToken = default)
     {
         var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)
-            return Result<UserProfileDto?>.Fail("User not found.");
+            return Result.Fail<UserProfileDto>("User not found.");
 
         var profile = new UserProfileDto(entity.Id, entity.Email, entity.FirstName, entity.MiddleName, entity.LastName, entity.Mobile, entity.Address, entity.ProfileImageUrl, entity.CountryId,
             entity.StateId, entity.CityId, entity.CreatedTime, entity.LastUpdatedTime);
 
-        return Result<UserProfileDto?>.Ok(profile);
+        return Result.Ok(profile);
     }
 
     private static UserDto Map(User user)
     {
-        return new(user.FirstName, user.MiddleName, user.LastName, user.Mobile, user.Address, user.ProfileImageUrl, user.CountryId, user.StateId, user.CityId);
+        return new(user.Id, user.FirstName, user.MiddleName, user.LastName, user.Mobile, user.Address, user.ProfileImageUrl, user.CountryId, user.StateId, user.CityId);
     }
 }

@@ -25,6 +25,6 @@ public class GenderLookup(ILookupProvider provider)
     public static (string Code, string Label) ToDto(Gender gender)
         => Map[gender];
 
-    public Result<IReadOnlyList<LookupItemDto>> Get()
+    public Result Get()
         => provider.Get<Gender>();
 }

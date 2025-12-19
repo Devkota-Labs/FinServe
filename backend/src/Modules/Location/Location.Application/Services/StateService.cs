@@ -17,29 +17,29 @@ internal sealed class StateService(ILogger logger, IStateRepository repo)
 
         var result = entities.Select(Map).ToList();
 
-        return Result<ICollection<StateDto>>.Ok(result);
+        return Result.Ok<ICollection<StateDto>>(result);
     }
 
-    public async Task<Result<StateDto?>> GetByIdAsync(int id, CancellationToken cancellationToken)
+    public async Task<Result<StateDto>> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
         var entities = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entities == null)
-            return Result<StateDto?>.Fail("State not found");
+            return Result.Fail<StateDto>("State not found");
 
-        return Result<StateDto?>.Ok(Map(entities));
+        return Result.Ok(Map(entities));
     }
 
-    public async Task<Result<ICollection<StateDto>?>> GetByCountryAsync(int countryId, CancellationToken cancellationToken)
+    public async Task<Result<ICollection<StateDto>>> GetByCountryAsync(int countryId, CancellationToken cancellationToken)
     {
         var entities = await repo.GetByCountryAsync(countryId, cancellationToken).ConfigureAwait(false);
 
         if (entities == null || entities.Count == 0)
-            return Result<ICollection<StateDto>?>.Fail($"No states found for country id {countryId}");
+            return Result.Fail<ICollection<StateDto>>($"No states found for country id {countryId}");
 
         var result = entities.Select(Map).ToList();
 
-        return Result<ICollection<StateDto>?>.Ok(result);
+        return Result.Ok<ICollection<StateDto>>(result);
     }
 
     public async Task<Result<StateDto>> CreateAsync(CreateStateDto dto, CancellationToken cancellationToken)
@@ -50,7 +50,7 @@ internal sealed class StateService(ILogger logger, IStateRepository repo)
 
         if (exists is not null)
         {
-            return Result<StateDto>.Fail($"State with name {exists.Name} and country {exists.Country.Name} already exists.");
+            return Result.Fail<StateDto>($"State with name {exists.Name} and country {exists.Country.Name} already exists.");
         }
 
         var newEntity = new State
@@ -61,7 +61,7 @@ internal sealed class StateService(ILogger logger, IStateRepository repo)
 
         await repo.AddAsync(newEntity, cancellationToken).ConfigureAwait(false);
 
-        return Result<StateDto>.Ok("State created successfully.", Map(newEntity));
+        return Result.Ok("State created successfully.", Map(newEntity));
     }
 
     public async Task<Result<StateDto>> UpdateAsync(int id, UpdateStateDto dto, CancellationToken cancellationToken)
@@ -69,7 +69,7 @@ internal sealed class StateService(ILogger logger, IStateRepository repo)
         var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)
-            return Result<StateDto>.Fail("State not found.");
+            return Result.Fail<StateDto>("State not found.");
 
         if (dto.Name is not null)
         {
@@ -79,7 +79,7 @@ internal sealed class StateService(ILogger logger, IStateRepository repo)
 
             if (exists is not null)
             {
-                return Result<StateDto>.Fail($"State with name {exists.Name} and country {exists.Country.Name} already exists.");
+                return Result.Fail<StateDto>($"State with name {exists.Name} and country {exists.Country.Name} already exists.");
             }
 
             entity.Name = dto.Name;
@@ -89,7 +89,7 @@ internal sealed class StateService(ILogger logger, IStateRepository repo)
 
         await repo.UpdateAsync(entity, cancellationToken).ConfigureAwait(false);
 
-        return Result<StateDto>.Ok("State updated successfully", Map(entity));
+        return Result.Ok("State updated successfully", Map(entity));
     }
 
     public async Task<Result<StateDto>> DeleteAsync(int id, CancellationToken cancellationToken)
@@ -97,11 +97,11 @@ internal sealed class StateService(ILogger logger, IStateRepository repo)
         var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)
-            return Result<StateDto>.Fail("State not found.");
+            return Result.Fail<StateDto>("State not found.");
 
         await repo.DeleteAsync(entity, cancellationToken).ConfigureAwait(false);
 
-        return Result<StateDto>.Ok("State deleted successfully.", Map(entity));
+        return Result.Ok("State deleted successfully.", Map(entity));
     }
 
     private static StateDto Map(State state)

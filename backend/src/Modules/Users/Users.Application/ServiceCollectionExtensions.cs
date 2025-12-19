@@ -4,7 +4,7 @@ using Users.Application.Services;
 
 namespace Users.Application;
 
-public static class DependencyInjection
+public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddUsersApplication(this IServiceCollection services)
     {

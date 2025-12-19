@@ -5,5 +5,5 @@ namespace Users.Application.Interfaces.Repositories;
 
 public interface IMenuRepository : IMasterRepository<Menu>
 {
-    Task<ICollection<Menu>?> GetByUserIdAsync(int userId, CancellationToken cancellationToken = default);
+    Task<ICollection<Menu>> GetByUserIdAsync(int userId, CancellationToken cancellationToken = default);
 }

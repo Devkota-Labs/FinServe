@@ -25,7 +25,7 @@ public sealed class AuthController(ILogger logger, IAuthService authService, IPa
 
         var serviceResponse = await authService.LoginAsync(dto, ip, cancellationToken).ConfigureAwait(false);
 
-        if (serviceResponse.Success)
+        if (serviceResponse.Success && serviceResponse.Data is not null)
         {
             //Correct cookie append
             var cookieOptions = new CookieOptions

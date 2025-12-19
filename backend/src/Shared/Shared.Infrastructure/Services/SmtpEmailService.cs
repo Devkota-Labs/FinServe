@@ -16,7 +16,7 @@ internal sealed class SmtpEmailService(ILogger logger, IOptions<EmailOptions> op
 
     public async Task SendAsync(string to, string subject, string htmlBody, string? textBody = null, CancellationToken cancellationToken = default)
     {
-        var message = new MailMessage
+        using var message = new MailMessage
         {
             From = new MailAddress(_options.FromEmail, _options.FromName),
             Subject = subject,

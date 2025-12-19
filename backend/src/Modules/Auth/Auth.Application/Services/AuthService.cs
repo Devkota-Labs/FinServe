@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Serilog;
 using Shared.Application.Interfaces.Services;
 using Shared.Application.Results;
+using Shared.Common;
 using Shared.Common.Services;
 using Shared.Common.Utils;
 using Shared.Infrastructure.Options;
@@ -53,23 +54,23 @@ internal sealed class AuthService(ILogger logger,
     {
         // uniqueness checks
         if (await usersRead.EmailExistsAsync(dto.Email, cancellationToken).ConfigureAwait(false))
-            return Result<RegisterResponseDto>.Fail("Email already exists.");
+            return Result.Fail<RegisterResponseDto>("Email already exists.");
 
         if (await usersRead.MobileExistsAsync(dto.Mobile, cancellationToken).ConfigureAwait(false))
-            return Result<RegisterResponseDto>.Fail("Mobile already exists.");
+            return Result.Fail<RegisterResponseDto>("Mobile already exists.");
 
         if (await usersRead.UserNameExistsAsync(dto.UserName, cancellationToken).ConfigureAwait(false))
-            return Result<RegisterResponseDto>.Fail("User Name already exists.");
+            return Result.Fail<RegisterResponseDto>("User Name already exists.");
 
         var (valid, message) = passwordPolicyService.ValidatePassword(dto.Password);
         if (!valid)
-            return Result<RegisterResponseDto>.Fail(message);
+            return Result.Fail<RegisterResponseDto>(message);
 
         var passwordHash = passwordHasher.Hash(dto.Password);
         
         if (!GenderLookup.TryFromCode(dto.Gender, out var gender))
         {
-            return Result<RegisterResponseDto>.Fail("Invalid gender");
+            return Result.Fail<RegisterResponseDto>("Invalid gender");
         }
 
         var createUserDto = new CreateUserDto(dto.UserName, dto.Email, dto.Mobile, gender, dto.DateOfBirth, dto.FirstName, dto.MiddleName, dto.LastName, dto.CountryId, dto.CityId, dto.StateId, dto.Address, dto.PinCode, passwordHash);
@@ -91,7 +92,7 @@ internal sealed class AuthService(ILogger logger,
         {
             Logger.Warning("Failed to send verification email to {Email}", dto.Email);
 
-            return Result<RegisterResponseDto>.Fail($"Failed to send verification email to {dto.Email}");
+            return Result.Fail<RegisterResponseDto>($"Failed to send verification email to {dto.Email}");
         }
 
         var adminEmail = configuration["AppConfig:Admin:NotificationEmail"];
@@ -132,7 +133,7 @@ internal sealed class AuthService(ILogger logger,
         var registerResponseDto = new RegisterResponseDto(authUserDto.UserName, dto.Email, dto.Mobile, dto.Gender, dto.DateOfBirth, dto.FirstName, dto.MiddleName, dto.LastName,
             dto.CountryId, dto.CityId, dto.StateId, dto.Address, dto.PinCode);
 
-        return Result<RegisterResponseDto>.Ok("Registered. Verify email & mobile and wait for admin approval.", registerResponseDto);
+        return Result.Ok("Registered. Verify email & mobile and wait for admin approval.", registerResponseDto);
     }
 
     // ======================================================
@@ -242,7 +243,7 @@ internal sealed class AuthService(ILogger logger,
         var user = await usersRead.GetByIdAsync(userId, cancellationToken).ConfigureAwait(false);
 
         if (user is null)
-            return Result<LoginResponseDto>.Fail("User not found.");
+            return Result.Fail("User not found.");
 
         if (await usersRead.MobileExistsAsync(dto.NewMobile, cancellationToken).ConfigureAwait(false))
             return Result.Fail("Mobile already exists.");
@@ -338,7 +339,7 @@ internal sealed class AuthService(ILogger logger,
         var user = await usersRead.GetByUserNameOrEmailAsync(dto.Email, cancellationToken).ConfigureAwait(false);
 
         if (user is null)
-            return Result<LoginResponseDto>.Fail("User not found.");
+            return Result.Fail<LoginResponseDto>("User not found.");
 
         var responseDto = new LoginResponseUserDto(user.Id, user.FullName, user.Email, user.IsEmailVerified, user.IsMobileVerified, user.ProfileImageUrl,
         user.Roles, await menuReadService.GetUserMenusAsync(user.Id, cancellationToken).ConfigureAwait(false));
@@ -346,22 +347,22 @@ internal sealed class AuthService(ILogger logger,
         var loginResponseDto = new LoginResponseDto(responseDto);
 
         if (!user.IsEmailVerified)
-            return Result<LoginResponseDto>.Fail("Email must be verified.", loginResponseDto);
+            return Result.Fail("Email must be verified.", loginResponseDto);
 
         if (!user.IsMobileVerified)
-            return Result<LoginResponseDto>.Fail("Mobile must be verified.", loginResponseDto);
+            return Result.Fail("Mobile must be verified.", loginResponseDto);
 
         if (!user.IsApproved)
-            return Result<LoginResponseDto>.Fail("User not approved.", loginResponseDto);
+            return Result.Fail("User not approved.", loginResponseDto);
 
         if (user.LockoutEndAt.HasValue && user.LockoutEndAt.Value > DateTime.UtcNow)
-            return Result<LoginResponseDto>.Fail($"Account locked, your account will be unlocked at {user.LockoutEndAt}.");
+            return Result.Fail<LoginResponseDto>($"Account locked, your account will be unlocked at {user.LockoutEndAt}.");
 
         if (!passwordHasher.Verify(user.PasswordHash, dto.Password))
         {
             await usersWrite.MarkFailedLogin(user.Id, cancellationToken).ConfigureAwait(false);
 
-            return Result<LoginResponseDto>.Fail("Invalid credentials.");
+            return Result.Fail<LoginResponseDto>("Invalid credentials.");
         }
 
         await usersWrite.MarkSuccessLogin(user.Id, cancellationToken).ConfigureAwait(false);
@@ -369,7 +370,7 @@ internal sealed class AuthService(ILogger logger,
         if (user.MfaEnabled)
         {
             if (string.IsNullOrEmpty(dto.TotpCode) || !mfaService.ValidateTotp(user.MfaSecret ?? string.Empty, dto.TotpCode))
-                return Result<LoginResponseDto>.Fail("MFA required/invalid");
+                return Result.Fail<LoginResponseDto>("MFA required/invalid");
         }
 
         var accessToken = jwtTokenGenerator.GenerateToken(user.Id, user.FullName, user.Email, user.Roles);
@@ -381,7 +382,7 @@ internal sealed class AuthService(ILogger logger,
         loginResponseDto.AccessToken = accessToken;
         loginResponseDto.RefreshToken = refresh.Token;        
 
-        return Result<LoginResponseDto>.Ok("Login successful.", loginResponseDto);
+        return Result.Ok("Login successful.", loginResponseDto);
     }
 
     // ======================================================
@@ -392,11 +393,11 @@ internal sealed class AuthService(ILogger logger,
         var refreshToken = await refreshTokenService.GetValidRefreshTokenAsync(token, cancellationToken).ConfigureAwait(false);
 
         if (refreshToken is null || !refreshToken.IsActive)
-            return Result<LoginResponseDto>.Fail("Invalid refresh token.");
+            return Result.Fail<LoginResponseDto>("Invalid refresh token.");
 
         var user = await usersRead.GetByIdAsync(refreshToken.UserId, cancellationToken).ConfigureAwait(false);
         if (user is null)
-            return Result<LoginResponseDto>.Fail("User not found.");
+            return Result.Fail<LoginResponseDto>("User not found.");
 
         // rotate token
         refreshToken.RevokedAt = DateTime.UtcNow;
@@ -424,7 +425,7 @@ internal sealed class AuthService(ILogger logger,
         var responseDto = new LoginResponseUserDto(user.Id, user.FullName, user.Email, user.IsEmailVerified, user.IsMobileVerified, user.ProfileImageUrl,
         user.Roles, await menuReadService.GetUserMenusAsync(user.Id, cancellationToken).ConfigureAwait(false));
 
-        return Result<LoginResponseDto>.Ok("", new LoginResponseDto(responseDto) { AccessToken = accessToken, RefreshToken = newRefresh.Token });
+        return Result.Ok("", new LoginResponseDto(responseDto) { AccessToken = accessToken, RefreshToken = newRefresh.Token });
     }
 
     // ======================================================
@@ -524,7 +525,7 @@ internal sealed class AuthService(ILogger logger,
             new
             {
                 UserName = user.UserName,
-                Timestamp = DateTimeUtil.Now.ToString("f")
+                Timestamp = DateTimeUtil.Now.ToString("f", Constants.IFormatProvider)
             });
 
         await emailService.SendAsync(user.Email, "Your password has been reset", html, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -565,7 +566,7 @@ internal sealed class AuthService(ILogger logger,
             new
             {
                 UserName = user.UserName,
-                Timestamp = DateTimeUtil.Now.ToString("f")
+                Timestamp = DateTimeUtil.Now.ToString("f", Constants.IFormatProvider)
             });
 
         await emailService.SendAsync(user.Email, "Your password was changed", html, cancellationToken: cancellationToken).ConfigureAwait(false);
