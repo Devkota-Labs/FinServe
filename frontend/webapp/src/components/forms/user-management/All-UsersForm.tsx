@@ -25,7 +25,7 @@ export default function AllUsersPage() {
   const filtered = useMemo(() => {
     return users.filter(
       (u) =>
-        u.fullName.toLowerCase().includes(search.toLowerCase()) ||
+        u.firstName.toLowerCase().includes(search.toLowerCase()) ||
         u.email.toLowerCase().includes(search.toLowerCase())
     );
   }, [users, search]);
@@ -75,20 +75,20 @@ export default function AllUsersPage() {
                 <TableHeader>
                   <TableRow className="bg-gray-100">
                     <TableHead className="font-semibold text-gray-700">Name</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Email</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Created</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Gender</TableHead>
+                    {/* <TableHead className="font-semibold text-gray-700">Email</TableHead> */}
+                    {/* <TableHead className="font-semibold text-gray-700">Created</TableHead> */}
+                    {/* <TableHead className="font-semibold text-gray-700">Gender</TableHead> */}
                     <TableHead className="font-semibold text-gray-700">Mobile Number</TableHead>
                     <TableHead className="font-semibold text-gray-700">Country</TableHead>
                     <TableHead className="font-semibold text-gray-700">State</TableHead>
                     <TableHead className="font-semibold text-gray-700">City</TableHead>
                     <TableHead className="font-semibold text-gray-700">Address</TableHead>
-                    <TableHead className="font-semibold text-gray-700">PinCode</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Is-Active</TableHead>
+                    {/* <TableHead className="font-semibold text-gray-700">PinCode</TableHead> */}
+                    {/* <TableHead className="font-semibold text-gray-700">Is-Active</TableHead>
                     <TableHead className="font-semibold text-gray-700">Is-Approve</TableHead>
                     <TableHead className="font-semibold text-gray-700">Is-Mobile Verify</TableHead>
                     <TableHead className="font-semibold text-gray-700">Is-Email Verified</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Roles</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Roles</TableHead> */}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -101,16 +101,16 @@ export default function AllUsersPage() {
                   )}
                   {paginated.map((u) => (
                     <TableRow key={u.id} className="hover:bg-gray-50 transition">
-                      <TableCell className="font-medium">{u.fullName}</TableCell>
-                      <TableCell>{u.email}</TableCell>
-                      <TableCell>{new Date(u.createdAt).toLocaleString()}</TableCell>
-                      <TableCell>{u.gender}</TableCell>
+                      <TableCell className="font-medium">{u.firstName} {u.lastName}</TableCell>
+                      {/* <TableCell>{u.email}</TableCell> */}
+                      {/* <TableCell>{new Date(u.createdAt).toLocaleString()}</TableCell> */}
+                      {/* <TableCell>{u.gender}</TableCell> */}
                       <TableCell>{u.mobile}</TableCell>
-                      <TableCell>{u.country}</TableCell>
-                      <TableCell>{u.state}</TableCell>
-                      <TableCell>{u.city}</TableCell>
+                      <TableCell>{u.countryId}</TableCell>
+                      <TableCell>{u.stateId}</TableCell>
+                      <TableCell>{u.cityId}</TableCell>
                       <TableCell>{u.address}</TableCell>
-                      <TableCell>{u.pinCode}</TableCell>
+                      {/* <TableCell>{u.pinCode}</TableCell>
                       <TableCell>{u.isActive ? "Yes" : "No"}</TableCell>
                       <TableCell>{u.isApproved ? "Yes" : "No"}</TableCell>
                       <TableCell>{u.emailVerified ? "Yes" : "No"}</TableCell>
@@ -119,7 +119,7 @@ export default function AllUsersPage() {
                         {Array.isArray(u.userRoles) && u.userRoles.length > 0
                           ? u.userRoles.map((r) => r.name || r).join(", ")
                           : "--"}
-                      </TableCell>
+                      </TableCell> */}
                     </TableRow>
                   ))}
                 </TableBody>

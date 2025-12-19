@@ -24,9 +24,9 @@ export function useLogin(
     try {
       const response = await api.login({ email, password });
 
-      const { statusCode, data, message } = response;
+      const { success, data, message } = response;
 
-      if (statusCode === 200) {
+      if (success === true) {
         if (data?.accessToken) setAccessToken(data.accessToken);
         //if (data?.user) setUser(data.user);
         if (data?.user) setUser(data.user);
@@ -34,29 +34,17 @@ export function useLogin(
 
         return data.user.roles;
       }
-
-      if (statusCode === 403) {
-        const { id, emailVerified, mobileVerified } = data;
-
+      if (!success) {
+        const { id, emailVerified, mobileVerified } = data.user;
         if (!emailVerified) {
-          const verifyEmail = await api.emailVerification({ id });
-          setAlertMsg(
-            verifyEmail.statusCode === 200
-              ? `${message}, email verification sent`
-              : `${message}, please contact administrator`
-          );
+          const verifyEmail = await api.emailVerification(id);
+          setAlertMsg(verifyEmail.message);
         }
-
         if (!mobileVerified) {
-          const verifyMobile = await api.mobileVerification({ id });
-          setAlertMsg(
-            verifyMobile.statusCode === 200
-              ? `${message}, OTP sent to mobile`
-              : `${message}, please contact administrator`
-          );
+          const verifyMobile = await api.mobileVerification(id);
+          setAlertMsg(verifyMobile.message);
         }
       }
-
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || "Something went wrong. Try again later.";
       setErrorMsg(msg);

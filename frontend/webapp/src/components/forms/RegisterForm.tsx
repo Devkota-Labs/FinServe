@@ -14,7 +14,7 @@ import { patterns } from "@/lib/patterns";
 import { api } from "@/lib/api";
 import { useRouter } from "next/navigation";
 export default function RegisterForm() {
-  
+
   const router = useRouter();
   const { errorMsg, setErrorMsg, successMsg, setSuccessMsg } = useFormMessages();
   const { registerUser, loading } = useRegistration(setErrorMsg, setSuccessMsg);
@@ -23,6 +23,7 @@ export default function RegisterForm() {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const [form, setForm] = useState({
+    userName: "",
     email: "",
     mobile: "",
     gender: "",
@@ -31,14 +32,14 @@ export default function RegisterForm() {
     middleName: "",
     lastName: "",
     countryId: "",
-    stateId: "",
     cityId: "",
+    stateId: "",
     address: "",
     pinCode: "",
-    password: "",
+    password:""
   });
   // Dropdown data
-  const [gender, setGender] = useState<{ id: number; name: string }[]>([]);
+  const [gender, setGender] = useState<{ code: string; displayName: string }[]>([]);
   const [countries, setCountries] = useState<{ id: string; name: string }[]>([]);
   const [states, setStates] = useState<{ id: string; name: string }[]>([]);
   const [cities, setCities] = useState<{ id: string; name: string }[]>([]);
@@ -47,14 +48,14 @@ export default function RegisterForm() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
   //Load Genders
-  useEffect(()=>
-  {
-     api.GetGender().then((res)=> {
-        setGender(res.data);
-     }).catch((err) => {
+  useEffect(() => {
+    api.GetGender().then((res) => {
+      setGender(res.data);
+    }).catch((err) => {
       console.error("Error fetching Genders:", err);
     });
-  },[])
+  }, [])
+
   // Load countries on mount
   useEffect(() => {
     api.GetCountry()
@@ -65,21 +66,26 @@ export default function RegisterForm() {
         console.error("Error fetching countries:", err);
       });
   }, []);
-  
+
 
   // Load states when country changes
   useEffect(() => {
-    if (!form.countryId) return;
-    api.GetState(form.countryId)
+    if (!form.countryId) {
+      setStates([]);
+      setForm((prev) => ({ ...prev, stateId: "" }));
+      return;
+    }
+
+    api.GetStateByContryID(form.countryId)
       .then((res) => {
-        const stateData = res?.data;
-        const stateList = stateData ? [stateData] : [];
-        setStates(stateList);
+        setStates(res.data || []);
+        setForm((prev) => ({ ...prev, stateId: "" }));
       })
       .catch((err) => {
         console.error("Error fetching states:", err);
       });
   }, [form.countryId]);
+
 
   // Load cities when state changes
   useEffect(() => {
@@ -88,17 +94,15 @@ export default function RegisterForm() {
       setForm((prev) => ({ ...prev, cityId: "" }));
       return;
     }
-    api.GetCity(form.stateId)
-      .then((res) =>
-        {
-        const CitiesData = res?.data;
-        const CityList = CitiesData ? [CitiesData] : [];
-        setCities(CityList);
-        } )
-      .catch(console.error);
 
-    setForm((prev) => ({ ...prev, cityId: "" }));
+    api.GetCityByStateID(form.stateId)
+      .then((res) => {
+        setCities(res.data || []);
+        setForm((prev) => ({ ...prev, cityId: "" }));
+      })
+      .catch(console.error);
   }, [form.stateId]);
+
 
 
   async function handleSubmit(e: any) {
@@ -114,14 +118,14 @@ export default function RegisterForm() {
       { field: "dateOfBirth", label: "Date of Birth", pattern: patterns.dob },
       { field: "firstName", label: "First Name", pattern: patterns.name },
       { field: "lastName", label: "Last Name", pattern: patterns.name },
-      { field: "countryId", label: "Country", pattern: patterns.id},
+      { field: "countryId", label: "Country", pattern: patterns.id },
       { field: "stateId", label: "State", pattern: patterns.id },
-      { field: "cityId", label: "City", pattern: patterns.id},
+      { field: "cityId", label: "City", pattern: patterns.id },
       { field: "pinCode", label: "Zip Code", pattern: patterns.pinCode },
       { field: "address", label: "Full Address", pattern: patterns.address },
       { field: "password", label: "Password", pattern: patterns.password },
+      { field: "userName", label: "User Name", pattern: patterns.address },
     ];
-    console.log(form);
     validations.forEach(({ field, label, pattern }) => {
       const result = validateField(form[field], label, pattern);
       if (result) newErrors[field] = result;
@@ -135,9 +139,8 @@ export default function RegisterForm() {
       }
       return;
     }
-    const res=await registerUser(form);
-    if(res)
-    {
+    const res = await registerUser(form);
+    if (res) {
       router.push("/login");
     }
   }
@@ -150,7 +153,7 @@ export default function RegisterForm() {
       {/* PERSONAL DETAILS */}
       <section>
         <h3 className="text-xl font-semibold mb-3">Personal Details</h3>
-        <div className="grid md:grid-cols-4 gap-4">
+        <div className="grid md:grid-cols-3 gap-4">
           {/* FIRST NAME */}
           <div>
             <label className="text-sm font-medium">First Name</label>
@@ -190,6 +193,36 @@ export default function RegisterForm() {
             </div>
             {errors.lastName && <p className="text-xs text-red-600 mt-1">{errors.lastName}</p>}
           </div>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4">
+          {/* User NAME */}
+          <div>
+            <label className="text-sm font-medium">User Name</label>
+            <div className="relative mt-1">
+              <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <Input
+                placeholder="User@123"
+                value={form.userName}
+                onChange={(e) => updateField("userName", e.target.value)}
+                className={`pl-10 ${errors.userName ? "border-red-500" : ""}`}
+              />
+            </div>
+            {errors.userName && <p className="text-xs text-red-600 mt-1">{errors.userName}</p>}
+          </div>
+          {/* LAST NAME */}
+          <div>
+            <div>
+            <label className="text-sm font-medium">Date of Birth</label>
+            <Input
+              type="date"
+              value={form.dateOfBirth}
+              onChange={(e) => updateField("dateOfBirth", e.target.value)}
+              className={`${errors.dateOfBirth ? "border-red-500" : ""}`}
+            />
+            {errors.dateOfBirth && <p className="text-xs text-red-600 mt-1">{errors.dateOfBirth}</p>}
+          </div>
+          </div>
 
           {/* GENDER */}
           <div>
@@ -202,23 +235,11 @@ export default function RegisterForm() {
             >
               <option value="">Select Gender</option>
               {gender.map((g: any) => (
-                <option key={g.id} value={g.id}>{g.name}</option>
+                <option key={g.code} value={g.code}>{g.displayName}</option>
               ))}
             </select>
             {errors.gender && <p className="text-xs text-red-600 mt-1">{errors.gender}</p>}
           </div>
-        </div>
-
-        {/* DOB */}
-        <div className="mt-4">
-          <label className="text-sm font-medium">Date of Birth</label>
-          <Input
-            type="date"
-            value={form.dateOfBirth}
-            onChange={(e) => updateField("dateOfBirth", e.target.value)}
-            className={`${errors.dateOfBirth ? "border-red-500" : ""}`}
-          />
-          {errors.dateOfBirth && <p className="text-xs text-red-600 mt-1">{errors.dateOfBirth}</p>}
         </div>
       </section>
 
@@ -279,7 +300,13 @@ export default function RegisterForm() {
             <select
               className={`w-full py-2 pl-3 pr-3 border rounded-md bg-white ${errors.countryId ? "border-red-500" : ""}`}
               value={form.countryId}
-              onChange={(e) => updateField("countryId", e.target.value)}
+              // onChange={(e) => updateField("countryId", e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setForm((prev) => ({ ...prev, countryId: value, stateId: "", cityId: "", }));
+                setStates([]);
+                setCities([]);
+              }}
             >
               <option value="">Select Country</option>
               {countries.map((c: any) => (
@@ -295,7 +322,12 @@ export default function RegisterForm() {
             <select
               className={`w-full py-2 pl-3 pr-3 border rounded-md bg-white ${errors.stateId ? "border-red-500" : ""}`}
               value={form.stateId}
-              onChange={(e) => updateField("stateId", e.target.value)}
+              //onChange={(e) => updateField("stateId", e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setForm((prev) => ({ ...prev, stateId: value, cityId: "", }));
+                setCities([]);
+              }}
               disabled={!states.length}
             >
               <option value="">Select State</option>

@@ -15,7 +15,7 @@ export function useForgotPassword(
     setSuccessMsg("");
     try {
       const res = await api.forgotPassword({email});
-      if(res.statusCode===200)
+      if(res.success===true)
       {
          setSuccessMsg(res.message);
       }

@@ -47,7 +47,7 @@ export default function CountriesPage() {
         mobileCode,
         isActive,
       });
-      if (res?.statusCode === 200 || res?.statusCode === 201) {
+      if (res?.success == true) {
         setSuccessMsg("Country added successfully!");
         reload();
         resetForm();
