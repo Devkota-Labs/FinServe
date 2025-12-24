@@ -310,7 +310,7 @@ internal sealed class AuthService(ILogger logger,
         if (user is null)
             return (null, Result.Fail<LoginResponseDto>("User not found."));
 
-        var responseDto = new LoginResponseUserDto(user.Id, user.FullName, user.Email, user.IsEmailVerified, user.IsMobileVerified, user.ProfileImageUrl,
+        var responseDto = new LoginResponseUserDto(user.Id, user.FullName, user.Email, user.IsEmailVerified, user.IsMobileVerified, user.ProfileImageUrl, user.Roles,
         await menuReadService.GetUserMenusAsync(user.Id, cancellationToken).ConfigureAwait(false));
 
         var loginResponseDto = new LoginResponseDto(responseDto);

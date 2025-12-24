@@ -8,11 +8,9 @@ namespace Auth.Infrastructure.Repositories;
 
 internal sealed class OtpRepository(AuthDbContext db) : IOtpRepository
 {
-    private readonly AuthDbContext _db = db;
-
     public async Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return await db.OtpVerifications.AnyAsync(x => x.Id == id, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<OtpVerification?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -22,7 +20,7 @@ internal sealed class OtpRepository(AuthDbContext db) : IOtpRepository
 
     public async Task<OtpVerification?> GetActiveAsync(int userId, string token, OtpPurpose purpose, CancellationToken cancellationToken = default)
     {
-        return await _db.OtpVerifications
+        return await db.OtpVerifications
                         .Where(x => x.UserId == userId && x.ConsumedAt == null && x.ExpiresAt >= DateTime.UtcNow && x.Token == token && x.Purpose == purpose)
                         .AsNoTracking()
                         .OrderByDescending(x => x.Id)
@@ -32,7 +30,7 @@ internal sealed class OtpRepository(AuthDbContext db) : IOtpRepository
     public async Task AddAsync(OtpVerification token, CancellationToken cancellationToken = default)
     {
         // Invalidate old tokens
-        var existing = await _db.OtpVerifications
+        var existing = await db.OtpVerifications
             .Where(x => x.UserId == token.UserId 
             && x.ConsumedAt == null
             && x.ExpiresAt >= DateTime.UtcNow
@@ -44,14 +42,14 @@ internal sealed class OtpRepository(AuthDbContext db) : IOtpRepository
             t.ConsumedAt = DateTimeUtil.Now;
         }
 
-        await _db.OtpVerifications.AddAsync(token, cancellationToken).ConfigureAwait(false);
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await db.OtpVerifications.AddAsync(token, cancellationToken).ConfigureAwait(false);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task UpdateAsync(OtpVerification token, CancellationToken cancellationToken = default)
     {
-        _db.OtpVerifications.Update(token);
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        db.OtpVerifications.Update(token);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task DeleteAsync(OtpVerification token, CancellationToken cancellationToken = default)
