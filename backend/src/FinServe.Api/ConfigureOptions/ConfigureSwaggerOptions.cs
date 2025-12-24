@@ -1,11 +1,12 @@
 ﻿using Asp.Versioning.ApiExplorer;
+using FinServe.Api.Configurations;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace FinServe.Api.Swagger;
+namespace FinServe.Api.ConfigureOptions;
 
-internal sealed class ConfigureSwaggerOptions(IApiVersionDescriptionProvider provider) : IConfigureOptions<SwaggerGenOptions>
+internal sealed class ConfigureSwaggerOptions(IApiVersionDescriptionProvider provider, IOptions<AppConfig> appConfig) : IConfigureOptions<SwaggerGenOptions>
 {
     public void Configure(SwaggerGenOptions options)
     {
@@ -16,11 +17,11 @@ internal sealed class ConfigureSwaggerOptions(IApiVersionDescriptionProvider pro
                 description.GroupName,
                 new OpenApiInfo
                 {
-                    Title = "FinServe API",
+                    Title = $"{appConfig.Value.Branding.AppName} API",
                     Version = description.ApiVersion.ToString(),
                     Description = description.IsDeprecated
                         ? "This API version is deprecated."
-                        : "FinServe REST API"
+                        : $"{appConfig.Value.Branding.AppName} REST API"
                 }
             );
         }

@@ -67,11 +67,34 @@ public sealed class UsersController(ILogger logger, IUserService userService)
         return FromResult(serviceResponse);
     }
 
+
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var serviceResponse = await userService.DeleteAsync(id, cancellationToken).ConfigureAwait(false);
+
+        return FromResult(serviceResponse);
+    }
+
+    [HttpPatch("addresses/{addressId}")]
+    public async Task<IActionResult> UpdateAddress(int addressId, UpdateAddressDto dto, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(dto);
+
+        var userId = GetCurrentUserId();
+
+        var serviceResponse = await userService.UpdateAddressAsync(userId, addressId, dto, cancellationToken).ConfigureAwait(false);
+
+        return FromResult(serviceResponse);
+    }
+
+    [HttpDelete("addresses/{addressId}")]
+    public async Task<IActionResult> DeleteAddress(int addressId, CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+
+        var serviceResponse = await userService.DeleteAddressAsync(userId, addressId, cancellationToken).ConfigureAwait(false);
 
         return FromResult(serviceResponse);
     }

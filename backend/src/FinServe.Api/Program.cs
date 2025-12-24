@@ -3,9 +3,9 @@ using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Auth.Infrastructure.Module;
 using FinServe.Api.Configurations;
+using FinServe.Api.ConfigureOptions;
 using FinServe.Api.Extensions;
 using FinServe.Api.Services;
-using FinServe.Api.Swagger;
 using Location.Infrastructure.Module;
 using Lookup.Application;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -34,7 +34,7 @@ namespace FinServe.Api;
 
 internal sealed class Program
 {
-    private const string _appName = "Fin Serve API";
+    private static string _appName = "API";
     private const string _stopCommand = "STOP";
     private static ILogger? _logger;
     public static async Task Main(string[] args)
@@ -64,6 +64,7 @@ internal sealed class Program
             var appConfig = builder.Configuration.GetSection(AppConfig.SectionName).Get<AppConfig>() ?? throw new InvalidOperationException("AppConfig section is not defined.");
 
             GCSettings.LatencyMode = appConfig.GCLatencyMode;
+            _appName = $"{appConfig.Branding.AppName} API";
 
             SelfLog.Enable(msg => Console.Error.WriteLine($"Serilog SelfLog: {msg}"));
 
@@ -173,14 +174,14 @@ internal sealed class Program
             // Register Module Services
             // -----------------------------------------------
             builder.Services
-                .AddSharedInfrastructure(builder.Configuration)
-                .AddSharedCommonModule(builder.Configuration)
-                .AddSharedLoggingModule(builder.Configuration)
-                .AddSharedSecurityModule(builder.Configuration)
+                .AddSharedInfrastructure(AppConfig.SectionName)
+                .AddSharedCommonModule()
+                .AddSharedLoggingModule()
+                .AddSharedSecurityModule(AppConfig.SectionName)
                 .AddLocationModule(builder.Configuration)
                 .AddUserModule(builder.Configuration)
-                .AddAuthModule(builder.Configuration)
-                .AddAdminModule(builder.Configuration)
+                .AddAuthModule(AppConfig.SectionName, builder.Configuration)
+                .AddAdminModule()
                 .AddLookupApplication()
                 ;
 
@@ -192,11 +193,9 @@ internal sealed class Program
             // -------------------------------------------------------------
             // Authentication + Authorization
             // -------------------------------------------------------------
+            builder.Services.AddSingleton<IConfigureOptions<JwtBearerOptions>, ConfigureJwtBearerOptions>();
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-                {
-                    options.TokenValidationParameters = TokenValidationParametersFactory.Create(builder.Configuration);
-                });
+                .AddJwtBearer();
 
             builder.Services.AddAuthorization();
 
@@ -236,6 +235,8 @@ internal sealed class Program
 
             _logger = GetService<ILogger>().ForContext<Program>();
 
+            _logger?.Information("Application Starting. {_appName} at {Now}.", _appName, DateTimeUtil.Now);
+
             // -------------------------------------------------------------
             // Apply Migrations Automatically (Optional)
             // -------------------------------------------------------------
@@ -258,7 +259,7 @@ internal sealed class Program
                     {
                         options.SwaggerEndpoint(
                             $"/swagger/{description.GroupName}/swagger.json",
-                            $"FinServe API {description.GroupName.ToUpperInvariant()}"
+                            $"{appConfig.Branding.AppName} API {description.GroupName.ToUpperInvariant()}"
                         );
                     }
                 });

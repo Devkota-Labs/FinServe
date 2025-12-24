@@ -1,5 +1,4 @@
-﻿using Location.Application.Dtos;
-using Location.Domain.Entities;
+﻿using Location.Domain.Entities;
 using Shared.Application.Interfaces.Repositories;
 
 namespace Location.Application.Interfaces.Repositories;

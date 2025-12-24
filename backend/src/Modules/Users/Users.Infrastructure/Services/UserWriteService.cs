@@ -1,8 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Shared.Application.Dtos;
 using Shared.Common.Services;
+using Shared.Security.Configurations;
 using Users.Application.Dtos.User;
 using Users.Application.Interfaces.Services;
 using Users.Domain.Entities;
@@ -10,9 +11,17 @@ using Users.Infrastructure.Db;
 
 namespace Users.Infrastructure.Services;
 
-internal sealed class UserWriteService(ILogger logger, UserDbContext userDbContext, IConfiguration configuration)
-    : BaseService(logger.ForContext<UserWriteService>(), null), IUserWriteService
+internal sealed class UserWriteService(ILogger logger
+    , UserDbContext userDbContext
+    , IOptions<SecurityOptions> securityOptions
+    , IOptions<LockoutOptions> lockoutOptions
+    )
+    : BaseService(logger.ForContext<UserWriteService>(), null)
+    , IUserWriteService
 {
+    private readonly SecurityOptions _securityOptions = securityOptions.Value;
+    private readonly LockoutOptions _lockoutOptions = lockoutOptions.Value;
+
     public async Task<AuthUserDto> CreateUserAsync(CreateUserDto dto, CancellationToken cancellationToken = default)
     {
         var entity = new User
@@ -25,17 +34,29 @@ internal sealed class UserWriteService(ILogger logger, UserDbContext userDbConte
             FirstName = dto.FirstName,
             MiddleName = dto.MiddleName,
             LastName = dto.LastName,
-            CountryId = dto.CountryId,
-            CityId = dto.CityId,
-            StateId = dto.StateId,
-            Address = dto.Address,
-            PinCode = dto.PinCode,
             IsActive = true,
             IsApproved = false,
             PasswordHash = dto.Password,
             PasswordLastChanged = DateTime.UtcNow,
-            PasswordExpiryDate = DateTime.UtcNow.AddDays(configuration.GetValue("AppConfig:Security:PasswordExpiryDays", 90))
+            PasswordExpiryDate = DateTime.UtcNow.AddDays(_securityOptions.PasswordExpiryDays)
         };
+
+        foreach (var item in dto.Address)
+        {
+            var userAddress = new UserAddress
+            {
+                AddressType = item.AddressType,
+                AddressLine1 = item.AddressLine1,
+                AddressLine2 = item.AddressLine2,
+                CityId = item.CityId,
+                StateId = item.StateId,
+                CountryId = item.CountryId,
+                PinCode = item.PinCode,
+                IsPrimary = item.IsPrimary
+            };
+
+            entity.AddAddress(userAddress);
+        }
 
         userDbContext.Users.Add(entity);
         await userDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -99,9 +120,9 @@ internal sealed class UserWriteService(ILogger logger, UserDbContext userDbConte
         var user = await userDbContext.Users.FirstAsync(x => x.Id == userId, cancellationToken).ConfigureAwait(false);
 
         user.FailedLoginCount++;
-        if (user.FailedLoginCount >= configuration.GetValue("Security:Lockout:MaxFailedAttempts", 5))
+        if (user.FailedLoginCount >= _lockoutOptions.MaxFailedAttempts)
         {
-            user.LockoutEndAt = DateTime.UtcNow.AddMinutes(configuration.GetValue("Security:Lockout:LockoutMinutes", 15));
+            user.LockoutEndAt = DateTime.UtcNow.AddMinutes(_lockoutOptions.LockoutMinutes);
             user.FailedLoginCount = 0;
         }
 
@@ -122,7 +143,7 @@ internal sealed class UserWriteService(ILogger logger, UserDbContext userDbConte
         var user = await userDbContext.Users.FirstAsync(x => x.Id == userId, cancellationToken).ConfigureAwait(false);
         user.PasswordHash = hash;
         user.PasswordLastChanged = DateTime.UtcNow;
-        user.PasswordExpiryDate = DateTime.UtcNow.AddDays(configuration.GetValue("AppConfig:Security:PasswordExpiryDays", 90));
+        user.PasswordExpiryDate = DateTime.UtcNow.AddDays(_securityOptions.PasswordExpiryDays);
 
         await userDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }

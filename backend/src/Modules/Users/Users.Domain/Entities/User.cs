@@ -14,14 +14,6 @@ public sealed class User : BaseAuditableEntity
     public required string FirstName { get; set; }
     public string? MiddleName { get; set; }
     public required string LastName { get; set; }
-    public required int CountryId { get; set; }
-    public required int CityId { get; set; }
-    public required int StateId { get; set; }
-    public required string Address { get; set; }
-    public required string PinCode { get; set; }
-    //public Country? Country { get; set; }
-    //public State? State { get; set; }
-    //public City? City { get; set; }
     public Uri? ProfileImageUrl { get; set; }
     public ICollection<UserRole> UserRoles { get; } = [];
     public bool IsActive { get; set; } = true;
@@ -36,4 +28,16 @@ public sealed class User : BaseAuditableEntity
     public bool MfaEnabled { get; set; }
     public string? MfaSecret { get; set; }
     public string? DeviceTokensJson { get; set; }
+    private readonly List<UserAddress> _addresses = [];
+    public IReadOnlyCollection<UserAddress> Addresses => _addresses;
+
+    public void AddAddress(UserAddress address)
+    {
+        ArgumentNullException.ThrowIfNull(address);
+
+        if (_addresses.Any(a => a.IsPrimary))
+            address.UnsetPrimary();
+
+        _addresses.Add(address);
+    }
 }

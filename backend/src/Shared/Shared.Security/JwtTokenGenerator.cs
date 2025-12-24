@@ -17,7 +17,9 @@ internal sealed class JwtTokenGenerator(ILogger logger, IOptions<JwtOptions> jwt
 
     public string GenerateToken(int userId, string name, string email, IEnumerable<string>? roles)
     {
-        var secret = _jwtOptions.Key ?? throw new InvalidOperationException("AppConfig:Jwt:Key not configured");
+        ArgumentNullException.ThrowIfNull(_jwtOptions);
+
+        var secret = _jwtOptions.Key;
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

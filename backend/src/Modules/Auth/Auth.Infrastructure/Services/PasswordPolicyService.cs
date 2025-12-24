@@ -1,38 +1,35 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Auth.Application.Options;
+using Microsoft.Extensions.Options;
 using System.Text.RegularExpressions;
 
 namespace Auth.Infrastructure.Services;
 
-internal sealed class PasswordPolicyService(IConfiguration config) : Shared.Security.IPasswordPolicyService
+internal sealed class PasswordPolicyService(IOptions<PasswordPolicyOptions> passwordPolicyOptions)
+    : Shared.Security.IPasswordPolicyService
 {
+    private readonly PasswordPolicyOptions _passwordPolicyOptions = passwordPolicyOptions.Value;
+
     public (bool IsValid, string Message) ValidatePassword(string password)
     {
-        var minLength = config.GetValue("Security:PasswordPolicy:MinLength", 8);
-        var requireUpper = config.GetValue("Security:PasswordPolicy:RequireUppercase", true);
-        var requireLower = config.GetValue("Security:PasswordPolicy:RequireLowercase", true);
-        var requireDigit = config.GetValue("Security:PasswordPolicy:RequireDigit", true);
-        var requireSpecial = config.GetValue("Security:PasswordPolicy:RequireSpecial", true);
-        var noWhitespace = config.GetValue("Security:PasswordPolicy:NoWhitespace", true);
-
         if (string.IsNullOrWhiteSpace(password))
             return (false, "Password cannot be empty.");
 
-        if (password.Length < minLength)
-            return (false, $"Password must be at least {minLength} characters long.");
+        if (password.Length < _passwordPolicyOptions.MinLength)
+            return (false, $"Password must be at least {_passwordPolicyOptions.MinLength} characters long.");
 
-        if (requireUpper && !Regex.IsMatch(password, @"[A-Z]"))
+        if (_passwordPolicyOptions.RequireUppercase && !Regex.IsMatch(password, @"[A-Z]"))
             return (false, "Password must contain at least one uppercase letter.");
 
-        if (requireLower && !Regex.IsMatch(password, @"[a-z]"))
+        if (_passwordPolicyOptions.RequireLowercase && !Regex.IsMatch(password, @"[a-z]"))
             return (false, "Password must contain at least one lowercase letter.");
 
-        if (requireDigit && !Regex.IsMatch(password, @"[0-9]"))
+        if (_passwordPolicyOptions.RequireDigit && !Regex.IsMatch(password, @"[0-9]"))
             return (false, "Password must contain at least one digit.");
 
-        if (requireSpecial && !Regex.IsMatch(password, @"[!@#$%^&*(),.?""':{}|<>_\-+=]"))
+        if (_passwordPolicyOptions.RequireSpecial && !Regex.IsMatch(password, @"[!@#$%^&*(),.?""':{}|<>_\-+=]"))
             return (false, "Password must contain at least one special character.");
 
-        if (noWhitespace && Regex.IsMatch(password, @"\s"))
+        if (_passwordPolicyOptions.NoWhitespace && Regex.IsMatch(password, @"\s"))
             return (false, "Password must not contain spaces.");
 
         return (true, "Password meets complexity requirements.");

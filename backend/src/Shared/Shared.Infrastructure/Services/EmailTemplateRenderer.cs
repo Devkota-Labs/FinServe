@@ -1,22 +1,42 @@
 ﻿using Shared.Application.Interfaces.Services;
+using Shared.Infrastructure.Options;
 using System.Reflection;
 using System.Text;
 
 namespace Shared.Infrastructure.Services;
 
-internal sealed class EmailTemplateRenderer : IEmailTemplateRenderer
+internal sealed class EmailTemplateRenderer(IEmailTemplateContextProvider contextProvider) : IEmailTemplateRenderer
 {
-    private const string TemplatePath = "Shared.Common.EmailTemplates";
-    private static readonly Assembly TemplateAssembly = typeof(Common.AssemblyMarker).Assembly;
+    private const string TemplatePath = "Shared.Infrastructure.EmailTemplates";
+    private static readonly Assembly TemplateAssembly = Assembly.GetExecutingAssembly();
+
+    private static Dictionary<string, object?> MergeModels(object specificModel, EmailTemplateCommonContext commonContext)
+    {
+        var result = new Dictionary<string, object?>();
+
+        foreach (var prop in commonContext.GetType().GetProperties())
+            result[prop.Name] = prop.GetValue(commonContext);
+
+        foreach (var prop in specificModel.GetType().GetProperties())
+            result[prop.Name] = prop.GetValue(specificModel);
+
+        return result;
+    }
+
     public string Render(string templateName, object model)
     {
         var layout = Load("Layout.html");
         var body = Load(templateName);
 
-        var mergedBody = ReplaceTokens(body, model);
+        // Merge model + common context
+        var mergedModel = MergeModels(
+            model,
+            contextProvider.GetCommonContext());
+
+        var mergedBody = ReplaceTokens(body, mergedModel);
         var finalHtml = layout.Replace("{{Body}}", mergedBody, StringComparison.InvariantCultureIgnoreCase);
 
-        return ReplaceTokens(finalHtml, model);
+        return ReplaceTokens(finalHtml, mergedModel);
     }
 
     private static string Load(string fileName)
@@ -30,15 +50,15 @@ internal sealed class EmailTemplateRenderer : IEmailTemplateRenderer
         using var reader = new StreamReader(stream, Encoding.UTF8);
         return reader.ReadToEnd();
     }
-
-    private static string ReplaceTokens(string content, object model)
+    private static string ReplaceTokens(string template, IDictionary<string, object?> model)
     {
-        foreach (var prop in model.GetType().GetProperties())
+        foreach (var (key, value) in model)
         {
-            var token = $"{{{{{prop.Name}}}}}";
-            var value = prop.GetValue(model)?.ToString() ?? string.Empty;
-            content = content.Replace(token, value, StringComparison.InvariantCultureIgnoreCase);
+            template = template.Replace(
+                $"{{{{{key}}}}}",
+                value?.ToString() ?? string.Empty, StringComparison.InvariantCultureIgnoreCase);
         }
-        return content;
+
+        return template;
     }
 }

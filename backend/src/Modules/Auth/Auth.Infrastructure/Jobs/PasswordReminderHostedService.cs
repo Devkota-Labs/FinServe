@@ -1,18 +1,22 @@
 ﻿using Auth.Application.Interfaces.Services;
-using Microsoft.Extensions.Configuration;
+using Auth.Application.Options;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Shared.Common.Services;
 
 namespace Auth.Infrastructure.Jobs;
 
-internal sealed class PasswordReminderHostedService(ILogger logger, IServiceProvider serviceProvider, IConfiguration configuration) 
+internal sealed class PasswordReminderHostedService(ILogger logger
+    , IServiceProvider serviceProvider
+    , IOptions<ScheduledJobsOptions> scheduledJobOptions) 
     : BaseBackgroundService(logger.ForContext<PasswordReminderHostedService>(), null)
 {
+    private readonly ScheduledJobsOptions _scheduledJobOptions = scheduledJobOptions.Value;
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // Cron-like: run once every day at configured hour (or fallback to every 24 hours).
-        var runHour = configuration.GetValue<int?>("AppConfig:ScheduledJobs:PasswordExpiryCheckHourUtc") ?? -1;
         var interval = TimeSpan.FromHours(24);
 
         Logger.Information("{Name} started.", Name);
@@ -25,11 +29,11 @@ internal sealed class PasswordReminderHostedService(ILogger logger, IServiceProv
                 using var scope = serviceProvider.CreateScope();
                 var svc = scope.ServiceProvider.GetRequiredService<IPasswordReminderService>();
 
-                if (runHour >= 0)
+                if (_scheduledJobOptions.PasswordExpiryCheckHourUtc >= 0)
                 {
                     // Wait until next runHour UTC
                     var now = DateTime.UtcNow;
-                    var next = new DateTime(now.Year, now.Month, now.Day, runHour, 0, 0, DateTimeKind.Utc);
+                    var next = new DateTime(now.Year, now.Month, now.Day, _scheduledJobOptions.PasswordExpiryCheckHourUtc, 0, 0, DateTimeKind.Utc);
                     if (next <= now) next = next.AddDays(1);
                     var delay = next - now;
                     Logger.Information("{Name} waiting {Delay} until next run at {Next}", Name, delay, next);

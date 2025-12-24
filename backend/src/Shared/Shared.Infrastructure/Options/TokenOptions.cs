@@ -5,6 +5,7 @@ namespace Shared.Infrastructure.Options;
 
 public sealed class TokenOptions : BaseServiceConfig
 {
+    public const string SectionName = "Token";
     public int EmailVerificationExpiryMinutes { get; init; } = 1440; // 24h
     public int PasswordResetExpiryMinutes { get; init; } = 30;
 

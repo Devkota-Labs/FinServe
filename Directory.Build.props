@@ -37,7 +37,7 @@
     <PublishSingleFile>true</PublishSingleFile>
 
     <!--Component Specific Configurations-->
-    <Title>FinServe</Title>
+    <Title>Devkota Labs</Title>
     <Company>Devkota Labs</Company>
     <Copyright>Copyright Devkota Labs 2025</Copyright>
     <FileVersion>1.0.0.0</FileVersion>
