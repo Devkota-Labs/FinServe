@@ -1,5 +1,4 @@
 ﻿using Shared.Application.Dtos;
-using Users.Application.Dtos.Role;
 
 namespace Auth.Application.Dtos;
 

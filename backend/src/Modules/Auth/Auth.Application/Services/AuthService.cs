@@ -349,6 +349,7 @@ internal sealed class AuthService(ILogger logger,
         await loginHistoryService.LoginAsync(user.Id, refresh.Id, true, null, httpContextAccessor.HttpContext, cancellationToken).ConfigureAwait(false);
 
         loginResponseDto.AccessToken = accessToken;
+        loginResponseDto.RefreshToken = refresh.Token;
 
         return (refresh.Token, Result.Ok("Login successful.", loginResponseDto));
     }
