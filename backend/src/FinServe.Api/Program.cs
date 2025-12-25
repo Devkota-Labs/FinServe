@@ -270,19 +270,34 @@ internal sealed class Program
             // -----------------------------------------------
             app.UseMiddleware<RequestLoggingMiddleware>();
 
+            // -------------------------------------------------------------
+            // Logging (as early as possible)
+            // -------------------------------------------------------------
             app.UseSerilogRequestLogging();                
-            app.UseCors("AppCorsPolicy");
+
+            // -------------------------------------------------------------
+            // HTTPS should be before routing & auth
+            // -------------------------------------------------------------
+            app.UseHttpsRedirection();
+
+            // -------------------------------------------------------------
+            // Routing
+            // -------------------------------------------------------------
             app.UseRouting();
 
             // -------------------------------------------------------------
-            // HTTPS + Auth Middlewares
+            // CORS must be BETWEEN UseRouting and Auth
             // -------------------------------------------------------------
-            app.UseHttpsRedirection();
+            app.UseCors("AppCorsPolicy");
+
+            // -------------------------------------------------------------
+            // Security
+            // -------------------------------------------------------------
             app.UseAuthentication();
             app.UseAuthorization();
 
             // -------------------------------------------------------------
-            // Map Controllers
+            // Endpoints
             // -------------------------------------------------------------
             app.MapGet("/", () => Results.Redirect("/swagger"));
             app.MapControllers();
