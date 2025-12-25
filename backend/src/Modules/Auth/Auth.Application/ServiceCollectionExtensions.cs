@@ -11,8 +11,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddAuthApplication(this IServiceCollection services, string appConfigSectionName)
     {
         //Configure options
-        services.AddOptions<PasswordPolicyOptions>().BindConfiguration($"{appConfigSectionName}:{SecurityOptions.SectionName}:{PasswordPolicyOptions.SectionName}").ValidateOnStart();
-        services.AddOptions<ScheduledJobsOptions>().BindConfiguration($"{appConfigSectionName}:{ScheduledJobsOptions.SectionName}").ValidateOnStart();
+        services.AddOptions<PasswordPolicyOptions>().BindConfiguration($"{appConfigSectionName}:{SecurityOptions.SectionName}:{PasswordPolicyOptions.SectionName}").ValidateOnStart();        
         services.AddOptions<AdminOptions>().BindConfiguration($"{appConfigSectionName}:{AdminOptions.SectionName}").ValidateOnStart();
         services.AddOptions<ApiOptions>().BindConfiguration($"{appConfigSectionName}:{ApiOptions.SectionName}").ValidateOnStart();
 
@@ -21,8 +20,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMfaService, MfaService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IPasswordHistoryService, PasswordHistoryService>();
-        services.AddScoped<IPasswordReminderService, PasswordReminderService>();
         services.AddScoped<ILoginHistoryService, LoginHistoryService>();
+        services.AddScoped<ILoginRiskService, LoginRiskService>();
 
         return services;
     }

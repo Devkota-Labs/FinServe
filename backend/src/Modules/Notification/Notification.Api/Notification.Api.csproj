@@ -1,2 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc" />
+    <PackageReference Include="Asp.Versioning.Mvc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Shared.Application\Shared.Application.csproj" />
+    <ProjectReference Include="..\..\..\Shared\Shared.Common\Shared.Common.csproj" />
+    <ProjectReference Include="..\Notification.Application\Notification.Application.csproj" />
+  </ItemGroup>
 </Project>

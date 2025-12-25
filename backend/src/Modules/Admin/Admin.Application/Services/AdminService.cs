@@ -1,13 +1,15 @@
 ﻿using Admin.Application.Dtos;
 using Admin.Application.Interfaces.Services;
 using Admin.Application.Models;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Serilog;
 using Shared.Application.Dtos;
-using Shared.Application.Interfaces.Services;
 using Shared.Application.Results;
 using Shared.Common.Services;
+using Shared.Infrastructure.Background;
 using Shared.Infrastructure.Options;
+using Shared.Security;
 using Users.Application.Interfaces.Services;
 
 namespace Admin.Application.Services;
@@ -16,9 +18,8 @@ internal sealed class AdminService(
     ILogger logger,
     IUserReadService userReadService,
     IUserWriteService userWriteService,
-    IEmailService emailService,
-    IEmailTemplateRenderer emailTemplateRenderer,
-    IOptions<FrontendOptions> frontendOption
+    IOptions<FrontendOptions> frontendOption,
+    IBackgroundTaskQ backgroundTaskQ
     )
     : BaseService(logger.ForContext<AdminService>(), null)
     , IAdminService
@@ -53,11 +54,20 @@ internal sealed class AdminService(
 
         var loginUrl = $"{_frontendOptions.BaseUrl}login";
 
-        var html = emailTemplateRenderer.Render(
-        "UserApproved.html",
-        new UserApprovedModel(user.UserName, new Uri(loginUrl)));
+        var evt = new UserApprovedContext
+        {
+            UserId = user.Id,
+            UserName = user.UserName,
+            LoginUrl= new Uri(loginUrl),
+        };
 
-        await emailService.SendAsync(user.Email, AdminEmailSubjects.UserApproved, html, cancellationToken: cancellationToken).ConfigureAwait(false);
+        //Background-safe execution
+        backgroundTaskQ.Queue(async sp =>
+        {
+            var notifier = sp.GetRequiredService<IUserApprovedNotifier>();
+
+            await notifier.NotifyAsync(evt, cancellationToken).ConfigureAwait(false);
+        });
 
         return Result.Ok("User approved successfully.");
     }
@@ -73,11 +83,20 @@ internal sealed class AdminService(
 
         var loginUrl = $"{_frontendOptions.BaseUrl}login";
 
-        var html = emailTemplateRenderer.Render(
-        "UserUnlocked.html",
-        new UserUnlockedModel(user.UserName, new Uri(loginUrl)));
+        var evt = new UserUnlockedContext
+        {
+            UserId = user.Id,
+            UserName = user.UserName,
+            LoginUrl = new Uri(loginUrl),
+        };
 
-        await emailService.SendAsync(user.Email, AdminEmailSubjects.UserUnlocked, html, cancellationToken: cancellationToken).ConfigureAwait(false);
+        //Background-safe execution
+        backgroundTaskQ.Queue(async sp =>
+        {
+            var notifier = sp.GetRequiredService<IUserUnlockedNotifier>();
+
+            await notifier.NotifyAsync(evt, cancellationToken).ConfigureAwait(false);
+        });
 
         return Result.Ok("User unlocked successfully.");
     }

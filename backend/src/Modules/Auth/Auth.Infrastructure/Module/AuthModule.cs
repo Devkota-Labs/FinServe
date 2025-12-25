@@ -1,7 +1,6 @@
 ﻿using Auth.Application;
 using Auth.Application.Interfaces.Repositories;
 using Auth.Infrastructure.Db;
-using Auth.Infrastructure.Jobs;
 using Auth.Infrastructure.Repositories;
 using Auth.Infrastructure.Services;
 using Microsoft.AspNetCore.Builder;
@@ -30,8 +29,7 @@ public static class AuthModule
         services.AddScoped<ILoginHistoryRepository, LoginHistoryRepository>();
 
         //Register Services        
-        services.AddScoped<IPasswordPolicyService, PasswordPolicyService>();        
-        services.AddHostedService<PasswordReminderHostedService>();
+        services.AddScoped<IPasswordPolicyService, PasswordPolicyService>();
 
         services.AddAuthApplication(appConfigSectionName);
 

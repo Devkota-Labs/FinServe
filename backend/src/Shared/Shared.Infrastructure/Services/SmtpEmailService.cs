@@ -8,7 +8,8 @@ using System.Net.Mail;
 
 namespace Shared.Infrastructure.Services;
 
-internal sealed class SmtpEmailService(ILogger logger, IOptions<EmailOptions> options)
+internal sealed class SmtpEmailService(ILogger logger
+    , IOptions<EmailOptions> options)
     : BaseService(logger.ForContext<SmtpEmailService>(), options.Value)
     , IEmailService
 {

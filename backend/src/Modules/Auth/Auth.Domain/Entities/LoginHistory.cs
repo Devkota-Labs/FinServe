@@ -12,6 +12,7 @@ public sealed class LoginHistory : BaseEntity
     public bool IsSuccess { get; set; }
     public string? FailureReason { get; set; }
     public string IpAddress { get; set; } = null!;
+    public string UserAgent { get; set; } = default!;
     public string Device { get; set; } = null!;
     public Status Status { get; set; } = Status.SUCCESS;
 }

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Notification.Application.Interfaces;
 using Serilog;
 using Shared.Application.Api;
 using Shared.Application.Results;
@@ -21,13 +22,12 @@ public sealed class AuthController(ILogger logger
     : BaseApiController(logger.ForContext<AuthController>())
 {
     private readonly FrontendOptions _frontendOptions = frontendOption.Value;
+
     [HttpPost("login")]
     [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginDto dto, CancellationToken cancellationToken)
     {
-        var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-
-        var (refreshToken, serviceResponse) = await authService.LoginAsync(dto, ip, cancellationToken).ConfigureAwait(false);
+        var (refreshToken, serviceResponse) = await authService.LoginAsync(dto, cancellationToken).ConfigureAwait(false);
 
         if (serviceResponse.Success && refreshToken is not null)
         {

@@ -21,7 +21,7 @@ public interface IAuthService
     Task<Result> VerifyOtpAsync(int userId, VerifyOtpDto dto, CancellationToken cancellationToken);
 
     // Auth tokens
-    Task<(string? RefreshToken, Result<LoginResponseDto>)> LoginAsync(LoginDto dto, string ipAddress, CancellationToken cancellationToken);
+    Task<(string? RefreshToken, Result<LoginResponseDto>)> LoginAsync(LoginDto dto, CancellationToken cancellationToken);
     Task<(string? RefreshToken, Result<string>)> RefreshAsync(string refreshToken, string ipAddress, CancellationToken cancellationToken);
     Task<Result> LogoutAsync(string refreshToken, string ipAddress, CancellationToken cancellationToken);
 

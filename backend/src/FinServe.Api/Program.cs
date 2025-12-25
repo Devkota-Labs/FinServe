@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+using Notification.Infrastructure.Module;
 using Serilog;
 using Serilog.Debugging;
 using Shared.Application.Results;
@@ -130,6 +131,7 @@ internal sealed class Program
                 .AddApplicationPart(typeof(Users.Api.AssemblyReference).Assembly)
                 .AddApplicationPart(typeof(Lookup.Api.AssemblyReference).Assembly)
                 .AddApplicationPart(typeof(Admin.Api.AssemblyReference).Assembly)
+                .AddApplicationPart(typeof(Notification.Api.AssemblyReference).Assembly)
                 ;
             ;
 
@@ -183,6 +185,7 @@ internal sealed class Program
                 .AddAuthModule(AppConfig.SectionName, builder.Configuration)
                 .AddAdminModule()
                 .AddLookupApplication()
+                .AddNotificationModule(AppConfig.SectionName, builder.Configuration)
                 ;
 
             builder.Services.AddMemoryCache();
@@ -245,6 +248,7 @@ internal sealed class Program
             app.AddUserMigrations();
             app.AddAuthMigrations();
             app.AddAdminMigrations();
+            app.AddNotificationMigrations();
 
             //if (app.Environment.IsDevelopment())
             {
@@ -273,7 +277,7 @@ internal sealed class Program
             // -------------------------------------------------------------
             // Logging (as early as possible)
             // -------------------------------------------------------------
-            app.UseSerilogRequestLogging();                
+            app.UseSerilogRequestLogging();
 
             // -------------------------------------------------------------
             // HTTPS should be before routing & auth

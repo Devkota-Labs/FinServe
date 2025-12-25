@@ -65,6 +65,11 @@ partial class AuthDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("int")
                     .HasColumnName("Status");
 
+                b.Property<string>("UserAgent")
+                    .IsRequired()
+                    .HasColumnType("longtext")
+                    .HasColumnName("User_Agent");
+
                 b.Property<int>("UserId")
                     .HasColumnType("int")
                     .HasColumnName("User_Id");

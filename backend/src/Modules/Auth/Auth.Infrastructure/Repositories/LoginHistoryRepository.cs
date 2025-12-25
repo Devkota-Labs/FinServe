@@ -12,6 +12,17 @@ internal sealed class LoginHistoryRepository(AuthDbContext db) : ILoginHistoryRe
         return await db.LoginHistories.AnyAsync(x => x.Id == id, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<bool> ExistsAsync(int userId, string ip, string userAgent, CancellationToken cancellationToken = default)
+    {
+        return await db.LoginHistories
+            .AsNoTracking()
+            .AnyAsync(x =>
+                x.UserId == userId &&
+                x.IpAddress == ip &&
+                x.UserAgent == userAgent, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     public async Task<LoginHistory?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();

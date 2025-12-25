@@ -1,2 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Shared.Infrastructure\Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Users\Users.Application\Users.Application.csproj" />
+    <ProjectReference Include="..\Notification.Application\Notification.Application.csproj" />
+    <ProjectReference Include="..\Notification.Domain\Notification.Domain.csproj" />
+  </ItemGroup>
 </Project>

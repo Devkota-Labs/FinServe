@@ -1,5 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <ProjectReference Include="..\..\Auth\Auth.Application\Auth.Application.csproj" />
+    <ProjectReference Include="..\..\..\Shared\Shared.Common\Shared.Common.csproj" />
+    <ProjectReference Include="..\..\..\Shared\Shared.Infrastructure\Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Shared\Shared.Security\Shared.Security.csproj" />
+    <ProjectReference Include="..\..\Users\Users.Application\Users.Application.csproj" />
+    <ProjectReference Include="..\Notification.Domain\Notification.Domain.csproj" />
   </ItemGroup>
 </Project>

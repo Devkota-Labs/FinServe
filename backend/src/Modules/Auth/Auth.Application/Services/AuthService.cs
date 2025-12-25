@@ -6,6 +6,7 @@ using Auth.Application.Options;
 using Auth.Domain.Entities;
 using Lookup.Application.Lookups;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Serilog;
 using Shared.Application.Interfaces.Services;
@@ -13,6 +14,7 @@ using Shared.Application.Results;
 using Shared.Common;
 using Shared.Common.Services;
 using Shared.Common.Utils;
+using Shared.Infrastructure.Background;
 using Shared.Infrastructure.Options;
 using Shared.Security;
 using Shared.Security.Configurations;
@@ -41,11 +43,14 @@ internal sealed class AuthService(ILogger logger,
     IRefreshTokenService refreshTokenService,
     IMenuReadService menuReadService,
     IHttpContextAccessor httpContextAccessor,
-    ILoginHistoryService loginHistoryService
-    , IOptions<SecurityOptions> securityOptions
-    , IOptions<AdminOptions> adminOptions
-    , IOptions<ApiOptions> apiOptions
-    , IOptions<FrontendOptions> frontendOption
+    ILoginHistoryService loginHistoryService,
+    IOptions<SecurityOptions> securityOptions,
+    IOptions<AdminOptions> adminOptions,
+    IOptions<ApiOptions> apiOptions,
+    IOptions<FrontendOptions> frontendOption,
+    IDeviceResolver deviceResolver,
+    ILoginRiskService loginRiskService,
+    IBackgroundTaskQ backgroundTaskQ
     )
     : BaseService(logger.ForContext<AuthService>(), null), IAuthService
 {
@@ -141,6 +146,21 @@ internal sealed class AuthService(ILogger logger,
 
         await usersWrite.MarkEmailVerifiedAsync(user.Id, cancellationToken).ConfigureAwait(false);
 
+        var evt = new EmailVerifiedContext
+        {
+            UserId = user.Id,
+            UserName = user.UserName,
+            Email = user.Email
+        };
+
+        //Background-safe notification
+        backgroundTaskQ.Queue(async sp =>
+        {
+            var notifier = sp.GetRequiredService<IEmailVerifiedNotifier>();
+
+            await notifier.NotifyAsync(evt, cancellationToken).ConfigureAwait(false);
+        });
+
         return Result.Ok("Email verified successfully.");
     }
 
@@ -187,12 +207,35 @@ internal sealed class AuthService(ILogger logger,
     // ======================================================
     public async Task<Result> UpdateEmailAsync(int userId, UpdateEmailDto dto, CancellationToken cancellationToken)
     {
+        var user = await usersRead.GetByIdAsync(userId, cancellationToken).ConfigureAwait(false);
+
+        if (user is null)
+            return Result.Fail("User not found.");
+
         if (await usersRead.EmailExistsAsync(dto.NewEmail, cancellationToken).ConfigureAwait(false))
         {
             return Result.Fail("Email already exists.");
         }
 
+        var oldEmail = user.Email;
+
         await usersWrite.UpdateEmailAsync(userId, dto.NewEmail, cancellationToken).ConfigureAwait(false);
+
+        var evt = new EmailChangedContext
+        {
+            UserId = userId,
+            UserName = user.UserName,
+            OldEmail = oldEmail,
+            NewEmail = dto.NewEmail,
+        };
+
+        //Background-safe execution
+        backgroundTaskQ.Queue(async sp =>
+        {
+            var notifier = sp.GetRequiredService<IEmailChangedNotifier>();
+
+            await notifier.NotifyAsync(evt, cancellationToken).ConfigureAwait(false);
+        });
 
         // Send new verification code
         var emailSendResult = await SendVerificationMailAsync(userId, cancellationToken).ConfigureAwait(false);
@@ -303,7 +346,7 @@ internal sealed class AuthService(ILogger logger,
     // ======================================================
     // 8. Login
     // ======================================================
-    public async Task<(string? RefreshToken, Result<LoginResponseDto>)> LoginAsync(LoginDto dto, string ip, CancellationToken cancellationToken)
+    public async Task<(string? RefreshToken, Result<LoginResponseDto>)> LoginAsync(LoginDto dto, CancellationToken cancellationToken)
     {
         var user = await usersRead.GetByUserNameOrEmailAsync(dto.Email, cancellationToken).ConfigureAwait(false);
 
@@ -344,12 +387,32 @@ internal sealed class AuthService(ILogger logger,
 
         var accessToken = jwtTokenGenerator.GenerateToken(user.Id, user.FullName, user.Email, user.Roles);
 
-        var refresh = await refreshTokenService.CreateRefreshTokenAsync(user.Id, ip, (int)new TimeSpan(30, 0, 0, 0, 0, 0).TotalMinutes, cancellationToken).ConfigureAwait(false);
+        var deviceInfo = deviceResolver.Resolve(httpContextAccessor.HttpContext);
+
+        var refresh = await refreshTokenService.CreateRefreshTokenAsync(user.Id, deviceInfo.IpAddress, (int)new TimeSpan(30, 0, 0, 0, 0, 0).TotalMinutes, cancellationToken).ConfigureAwait(false);
 
         await loginHistoryService.LoginAsync(user.Id, refresh.Id, true, null, httpContextAccessor.HttpContext, cancellationToken).ConfigureAwait(false);
 
         loginResponseDto.AccessToken = accessToken;
         loginResponseDto.RefreshToken = refresh.Token;
+
+        var loginEvent = new LoginContext
+        {
+            UserId = user.Id,
+            UserName = user.UserName,
+            IpAddress = deviceInfo.IpAddress,
+            UserAgent = deviceInfo.UserAgent,
+            Device = deviceInfo.Device,
+            LoginTime = DateTime.UtcNow,
+            IsSuspicious = await loginRiskService
+            .IsSuspiciousAsync(user.Id, deviceInfo.IpAddress, deviceInfo.UserAgent, cancellationToken).ConfigureAwait(false)
+        };
+
+        backgroundTaskQ.Queue(async sp =>
+        {
+            var notifier = sp.GetRequiredService<ILoginAlertNotifier>();
+            await notifier.NotifyAsync(loginEvent, cancellationToken).ConfigureAwait(false);
+        });
 
         return (refresh.Token, Result.Ok("Login successful.", loginResponseDto));
     }
@@ -435,11 +498,20 @@ internal sealed class AuthService(ILogger logger,
 
         string verificationUrl = $"{baseUrl}api/v{_apiOptions.PasswordResetVerificationVersion}/auth/verify-reset-password?email={Uri.EscapeDataString(user.Email)}&token={passwordRest.Token}";
 
-        var html = emailTemplateRenderer.Render(
-            "PasswordReset.html",
-            new PasswordResetModel(user.UserName, new Uri(verificationUrl), (int)TimeSpan.FromMinutes(_tokenOptions.PasswordResetExpiryMinutes).TotalMinutes));
+        var evt = new PasswordResetRequestedContext
+        {
+            UserId = user.Id,
+            UserName = user.UserName,
+            ResetLink = new Uri(verificationUrl),
+            ExpiryTimeInMinutes = (int)TimeSpan.FromMinutes(_tokenOptions.PasswordResetExpiryMinutes).TotalMinutes,
+        };
 
-        await emailService.SendAsync(user.Email, AuthEmailSubjects.PasswordReset, html, cancellationToken: cancellationToken).ConfigureAwait(false);
+        backgroundTaskQ.Queue(async sp =>
+        {
+            var notifier = sp.GetRequiredService<IPasswordResetRequestedNotifier>();
+
+            await notifier.NotifyAsync(evt, cancellationToken).ConfigureAwait(false);
+        });
 
         return Result.Ok("If account exists, a reset link has been sent.");
     }
@@ -474,11 +546,19 @@ internal sealed class AuthService(ILogger logger,
         //Adding password history
         await passwordHistoryService.SaveAsync(user.Id, newHash, cancellationToken).ConfigureAwait(false);
 
-        var html = emailTemplateRenderer.Render(
-            "PasswordResetSuccess.html",
-            new PasswordResetSuccessModel(user.UserName, DateTimeUtil.Now.ToString("f", Constants.IFormatProvider)));
+        var evt = new PasswordResetSuccessContext
+        {
+            UserId = user.Id,
+            UserName = user.UserName,
+            Timestamp = DateTimeUtil.Now.ToString("f", Constants.IFormatProvider)
+        };
 
-        await emailService.SendAsync(user.Email, AuthEmailSubjects.PasswordResetSuccess, html, cancellationToken: cancellationToken).ConfigureAwait(false);
+        backgroundTaskQ.Queue(async sp =>
+        {
+            var notifier = sp.GetRequiredService<IPasswordResetSuccessNotifier>();
+
+            await notifier.NotifyAsync(evt, cancellationToken).ConfigureAwait(false);
+        });
 
         return Result.Ok("Password reset successful.");
     }
@@ -509,11 +589,20 @@ internal sealed class AuthService(ILogger logger,
         //Adding password history
         await passwordHistoryService.SaveAsync(user.Id, newHash, cancellationToken).ConfigureAwait(false);
 
-        var html = emailTemplateRenderer.Render(
-            "PasswordChanged.html",
-            new PasswordChangedModel(user.UserName, DateTimeUtil.Now.ToString("f", Constants.IFormatProvider)));
+        var evt = new PasswordChangedContext
+        {
+            UserId = user.Id,
+            UserName = user.UserName,
+            Timestamp = DateTimeUtil.Now.ToString("f", Constants.IFormatProvider)
+        };
 
-        await emailService.SendAsync(user.Email, AuthEmailSubjects.PasswordChanged, html, cancellationToken: cancellationToken).ConfigureAwait(false);
+        //Background-safe notification
+        backgroundTaskQ.Queue(async sp =>
+        {
+            var notifier = sp.GetRequiredService<IPasswordChangedNotifier>();
+
+            await notifier.NotifyAsync(evt, cancellationToken).ConfigureAwait(false);
+        });
 
         return Result.Ok("Password Changed successful.");
     }

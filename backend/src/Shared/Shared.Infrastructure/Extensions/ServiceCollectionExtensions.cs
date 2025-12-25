@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Shared.Application.Interfaces.Services;
+using Shared.Infrastructure.Background;
 using Shared.Infrastructure.Options;
 using Shared.Infrastructure.Services;
 
@@ -25,6 +26,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISmsSender, TestSmsSender>();
         services.AddScoped<IAppUrlProvider, AppUrlProvider>();
         services.AddScoped<IOtpGenerator, OtpGenerator>();
+        services.AddScoped<INotificationTemplateRenderer, NotificationTemplateRenderer>();
+        services.AddScoped<IDeviceResolver, DeviceResolver>();
+        services.AddSingleton<IBackgroundTaskQ, BackgroundTaskQueue>();
+        services.AddHostedService<QueuedHostedService>();
 
         return services;
     }

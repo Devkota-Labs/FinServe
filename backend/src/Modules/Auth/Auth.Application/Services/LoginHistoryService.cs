@@ -3,40 +3,40 @@ using Auth.Application.Interfaces.Services;
 using Auth.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Serilog;
+using Shared.Application.Interfaces.Services;
 using Shared.Application.Results;
 using Shared.Common.Services;
 
 namespace Auth.Application.Services;
 
-internal sealed class LoginHistoryService(ILogger logger, ILoginHistoryRepository _repository)
-    : BaseService(logger.ForContext<LoginHistoryService>(), null), ILoginHistoryService
+internal sealed class LoginHistoryService(
+    ILogger logger, 
+    ILoginHistoryRepository _repository,
+    IDeviceResolver deviceResolver
+    )
+    : BaseService(logger.ForContext<LoginHistoryService>(), null)
+    , ILoginHistoryService
 {
-    private static string GetIpAddress(HttpContext? context)
+    public async Task<Result<bool>> ExistsAsync(int userId, string ip, string userAgent, CancellationToken cancellationToken = default)
     {
-        if (context == null)
-            return "Unknown";
+        var isSuspicious = await _repository.ExistsAsync(userId, ip, userAgent, cancellationToken).ConfigureAwait(false);
 
-        return  context.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
-    }
-
-    private static string GetUserAgent(HttpContext? context)
-    {
-        if (context == null)
-            return "Unknown";
-
-        return context.Request.Headers.UserAgent.ToString();
+        return Result.Ok(isSuspicious);
     }
 
     public async Task<Result> LoginAsync(int userId, int sessionId, bool isSuccess, string? failureReason, HttpContext? httpContext, CancellationToken cancellationToken = default)
     {
+        var deviceInfo = deviceResolver.Resolve(httpContext);
+
         var history = new LoginHistory
         {
             UserId = userId,
             SessionId = sessionId,
             IsSuccess = isSuccess,
             FailureReason = failureReason,
-            IpAddress = GetIpAddress(httpContext),
-            Device = GetUserAgent(httpContext),
+            IpAddress = deviceInfo.IpAddress,
+            Device = deviceInfo.Device,
+            UserAgent = deviceInfo.UserAgent,
             LoginTime = DateTime.UtcNow
         };
 
