@@ -12,8 +12,8 @@ public class ModelValidationFilter : IActionFilter
         if (!context.ModelState.IsValid)
         {
             var errors = context.ModelState
-                .Where(kvp => kvp.Value.Errors.Any())
-                .SelectMany(kvp => kvp.Value.Errors.Select(e =>
+                .Where(kvp => kvp.Value != null && kvp.Value.Errors.Any())
+                .SelectMany(kvp => kvp.Value is null ? [] : kvp.Value.Errors.Select(e =>
                     new ValidationError(kvp.Key, e.ErrorMessage)))
                 .ToList();
 

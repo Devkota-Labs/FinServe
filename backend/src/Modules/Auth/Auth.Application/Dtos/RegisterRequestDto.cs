@@ -1,5 +1,5 @@
-﻿using Shared.Domain.Enums;
+﻿using Users.Application.Dtos.User;
 
 namespace Auth.Application.Dtos;
 
-public sealed record RegisterRequestDto(string UserName, string Email, string Mobile, Gender Gender, DateOnly DateOfBirth, string FirstName, string? MiddleName, string LastName, int CountryId, int CityId, int StateId, string Address, string PinCode, string Password);
+public sealed record RegisterRequestDto(string UserName, string Email, string Mobile, string Gender, DateOnly DateOfBirth, string FirstName, string? MiddleName, string LastName, ICollection<CreateAddressDto> Addresses, string Password);

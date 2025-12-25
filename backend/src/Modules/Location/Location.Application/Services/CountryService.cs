@@ -17,17 +17,17 @@ internal sealed class CountryService(ILogger logger, ICountryRepository repo)
 
         var result = entities.Select(Map).ToList();
 
-        return Result<ICollection<CountryDto>>.Ok(result);
+        return Result.Ok<ICollection<CountryDto>>(result);
     }
 
-    public async Task<Result<CountryDto?>> GetByIdAsync(int id, CancellationToken cancellationToken)
+    public async Task<Result<CountryDto>> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
         var entities = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entities == null)
-            return Result<CountryDto?>.Fail("Country not found");
+            return Result.Fail<CountryDto>("Country not found");
 
-        return Result<CountryDto?>.Ok(Map(entities));
+        return Result.Ok(Map(entities));
     }
 
     public async Task<Result<CountryDto>> CreateAsync(CreateCountryDto dto, CancellationToken cancellationToken)
@@ -36,7 +36,7 @@ internal sealed class CountryService(ILogger logger, ICountryRepository repo)
 
         if (entity is not null)
         {
-            return Result<CountryDto>.Fail($"Country with name {entity.Name} already exists.");
+            return Result.Fail<CountryDto>($"Country with name {entity.Name} already exists.");
         }
 
         var newEntity = new Country
@@ -48,7 +48,7 @@ internal sealed class CountryService(ILogger logger, ICountryRepository repo)
 
         await repo.AddAsync(newEntity, cancellationToken).ConfigureAwait(false);
 
-        return Result<CountryDto>.Ok("Country created successfully.", Map(newEntity));
+        return Result.Ok("Country created successfully.", Map(newEntity));
     }
 
     public async Task<Result<CountryDto>> UpdateAsync(int id, UpdateCountryDto dto, CancellationToken cancellationToken)
@@ -56,7 +56,7 @@ internal sealed class CountryService(ILogger logger, ICountryRepository repo)
         var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)
-            return Result<CountryDto>.Fail("Country not found.");
+            return Result.Fail<CountryDto>("Country not found.");
 
         if (dto.Name is not null)
         {
@@ -64,7 +64,7 @@ internal sealed class CountryService(ILogger logger, ICountryRepository repo)
 
             if (exists is not null)
             {
-                return Result<CountryDto>.Fail($"Country with name {exists.Name} already exists.");
+                return Result.Fail<CountryDto>($"Country with name {exists.Name} already exists.");
             }
 
             entity.Name = dto.Name;
@@ -75,7 +75,7 @@ internal sealed class CountryService(ILogger logger, ICountryRepository repo)
 
         await repo.UpdateAsync(entity, cancellationToken).ConfigureAwait(false);
 
-        return Result<CountryDto>.Ok("Country updated successfully", Map(entity));
+        return Result.Ok("Country updated successfully", Map(entity));
     }
 
     public async Task<Result<CountryDto>> DeleteAsync(int id, CancellationToken cancellationToken)
@@ -83,11 +83,11 @@ internal sealed class CountryService(ILogger logger, ICountryRepository repo)
         var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)
-            return Result<CountryDto>.Fail("Country not found.");
+            return Result.Fail<CountryDto>("Country not found.");
 
         await repo.DeleteAsync(entity, cancellationToken).ConfigureAwait(false);
 
-        return Result<CountryDto>.Ok("Country deleted successfully.", Map(entity));
+        return Result.Ok("Country deleted successfully.", Map(entity));
     }
 
     private static CountryDto Map(Country country)

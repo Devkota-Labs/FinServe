@@ -6,11 +6,13 @@ namespace Users.Infrastructure.Db;
 
 internal sealed class UserDbContext(DbContextOptions<UserDbContext> options) : BaseDbContext(options)
 {
-    public DbSet<User> Users { get; set; } = null!;
-    public DbSet<Role> Roles { get; set; } = null!;
-    public DbSet<Menu> Menus { get; set; } = null!;
-    public DbSet<RoleMenu> RoleMenus { get; set; } = null!;
-    public DbSet<UserRole> UserRoles { get; set; } = null!;
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<Menu> Menus => Set<Menu>();
+    public DbSet<RoleMenu> RoleMenus => Set<RoleMenu>();
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<UserAddress> UserAddresses => Set<UserAddress>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

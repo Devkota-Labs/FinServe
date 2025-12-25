@@ -1,6 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <EmbeddedResource Include="EmailTemplates\AdminUserApproval.html" />
+    <EmbeddedResource Include="EmailTemplates\EmailVerification.html" />
+    <EmbeddedResource Include="EmailTemplates\Layout.html" />
+    <EmbeddedResource Include="EmailTemplates\OtpEmail.html" />
+    <EmbeddedResource Include="EmailTemplates\PasswordChanged.html" />
+    <EmbeddedResource Include="EmailTemplates\PasswordReminder.html" />
+    <EmbeddedResource Include="EmailTemplates\PasswordReset.html" />
+    <EmbeddedResource Include="EmailTemplates\PasswordResetSuccess.html" />
+    <EmbeddedResource Include="EmailTemplates\UserApproved.html" />
+    <EmbeddedResource Include="EmailTemplates\UserUnlocked.html" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" />
   </ItemGroup>

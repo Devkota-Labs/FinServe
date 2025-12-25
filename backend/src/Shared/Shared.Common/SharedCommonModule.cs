@@ -1,11 +1,10 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 
 namespace Shared.Common;
 
 public static class SharedCommonModule
 {
-    public static IServiceCollection AddSharedCommonModule(this IServiceCollection services, IConfiguration config)
+    public static IServiceCollection AddSharedCommonModule(this IServiceCollection services)
     {
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 

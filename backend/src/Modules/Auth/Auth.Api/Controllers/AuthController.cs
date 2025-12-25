@@ -5,25 +5,31 @@ using Auth.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Shared.Application.Api;
+using Shared.Application.Results;
+using Shared.Infrastructure.Options;
 
 namespace Auth.Api.Controllers;
 
 [ApiVersion("1.0")]
-[ApiVersion("2.0")]
-public sealed class AuthController(ILogger logger, IAuthService authService, IPasswordReminderService passwordReminderService)
+public sealed class AuthController(ILogger logger
+    , IAuthService authService
+    , IPasswordReminderService passwordReminderService
+    , IOptions<FrontendOptions> frontendOption)
     : BaseApiController(logger.ForContext<AuthController>())
 {
+    private readonly FrontendOptions _frontendOptions = frontendOption.Value;
     [HttpPost("login")]
     [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginDto dto, CancellationToken cancellationToken)
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
-        var serviceResponse = await authService.LoginAsync(dto, ip, cancellationToken).ConfigureAwait(false);
+        var (refreshToken, serviceResponse) = await authService.LoginAsync(dto, ip, cancellationToken).ConfigureAwait(false);
 
-        if (serviceResponse.Success)
+        if (serviceResponse.Success && refreshToken is not null)
         {
             //Correct cookie append
             var cookieOptions = new CookieOptions
@@ -35,7 +41,7 @@ public sealed class AuthController(ILogger logger, IAuthService authService, IPa
                 Path = "/" // optional, but ensures cookie is available to the whole app
             };
             // Use refresh.Token here
-            Response.Cookies.Append("refreshToken", serviceResponse.Data.RefreshToken, cookieOptions);
+            Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
         }
 
         return FromResult(serviceResponse);
@@ -56,7 +62,11 @@ public sealed class AuthController(ILogger logger, IAuthService authService, IPa
     {
         var serviceResponse = await authService.VerifyEmailAsync(new VerifyEmailDto(email, token), cancellationToken).ConfigureAwait(false);
 
-        return FromResult(serviceResponse);
+        var redirectUrl = serviceResponse.Success
+        ? $"{_frontendOptions.BaseUrl}email-verified"
+        : $"{_frontendOptions.BaseUrl}email-verification-failed?reason={serviceResponse.Message}";
+
+        return Redirect(redirectUrl);
     }
 
     [HttpPost("send-verification-email/{userId}")]
@@ -105,17 +115,17 @@ public sealed class AuthController(ILogger logger, IAuthService authService, IPa
     {
         string? refreshToken = Request.Cookies["refreshToken"];
         if (string.IsNullOrEmpty(refreshToken))
-            return Unauthorized("Refresh token missing.");
+            return FromResult(Result.Fail("Refresh token missing."));
 
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
-        var serviceResponse = await authService.RefreshAsync(refreshToken, ip, cancellationToken).ConfigureAwait(false);
+        var (newRefreshToken, serviceResponse) = await authService.RefreshAsync(refreshToken, ip, cancellationToken).ConfigureAwait(false);
 
-        if (serviceResponse.Success && serviceResponse.Data is not null)
+        if (serviceResponse.Success && newRefreshToken is not null)
         {
             Response.Cookies.Append(
             "refreshToken",
-            serviceResponse.Data.RefreshToken,
+            newRefreshToken,
             new CookieOptions
             {
                 HttpOnly = true,
@@ -138,7 +148,7 @@ public sealed class AuthController(ILogger logger, IAuthService authService, IPa
 
         if (string.IsNullOrWhiteSpace(token))
         {
-            return Unauthorized("Refresh token missing.");
+            return FromResult(Result.Fail("Refresh token missing."));
         }
 
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
@@ -182,8 +192,16 @@ public sealed class AuthController(ILogger logger, IAuthService authService, IPa
         return FromResult(serviceResponse);
     }
 
+    [HttpPost("send-approval-email/{userId}")]
+    public async Task<IActionResult> SendApprovalMail(int userId, CancellationToken cancellationToken)
+    {
+        var serviceResponse = await authService.SendApprovalFollowUpMailAsync(userId, cancellationToken).ConfigureAwait(false);
+
+        return FromResult(serviceResponse);
+    }
+
     [ApiVersion("2.0")]
-    [HttpPost("{userId}")]
+    [HttpPost("Reminder/{userId}")]
     public async Task<IActionResult> ManualReminder(int userId, CancellationToken cancellationToken)
     {
         var expiry = DateTime.UtcNow.AddDays(7); // This is OK because service recalculates internally.

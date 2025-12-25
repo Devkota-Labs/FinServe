@@ -1,6 +1,6 @@
 ﻿namespace Shared.Application.Dtos;
 
-public sealed class AuthUserDto
+public sealed class AuthUserDto(ICollection<string>? Roles)
 {
     public int Id { get; set; }
     public string UserName { get; set; } = default!;
@@ -17,5 +17,5 @@ public sealed class AuthUserDto
     public required bool MfaEnabled { get; set; }
     public required string? MfaSecret { get; set; }
     public required DateTime? PasswordExpiryDate { get; set; }
-    public ICollection<string>? Roles { get; set; }
+    public ICollection<string>? Roles { get; } = Roles;
 }

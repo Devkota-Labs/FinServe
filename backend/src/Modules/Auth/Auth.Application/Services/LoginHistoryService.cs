@@ -11,17 +11,23 @@ namespace Auth.Application.Services;
 internal sealed class LoginHistoryService(ILogger logger, ILoginHistoryRepository _repository)
     : BaseService(logger.ForContext<LoginHistoryService>(), null), ILoginHistoryService
 {
-    private static string GetIpAddress(HttpContext context)
+    private static string GetIpAddress(HttpContext? context)
     {
-        return context.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+        if (context == null)
+            return "Unknown";
+
+        return  context.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
     }
 
-    private static string GetUserAgent(HttpContext context)
+    private static string GetUserAgent(HttpContext? context)
     {
+        if (context == null)
+            return "Unknown";
+
         return context.Request.Headers.UserAgent.ToString();
     }
 
-    public async Task<Result> LoginAsync(int userId, int sessionId, bool isSuccess, string? failureReason, HttpContext httpContext, CancellationToken cancellationToken = default)
+    public async Task<Result> LoginAsync(int userId, int sessionId, bool isSuccess, string? failureReason, HttpContext? httpContext, CancellationToken cancellationToken = default)
     {
         var history = new LoginHistory
         {

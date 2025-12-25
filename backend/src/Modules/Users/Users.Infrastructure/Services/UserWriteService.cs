@@ -1,8 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Shared.Application.Dtos;
 using Shared.Common.Services;
+using Shared.Security.Configurations;
 using Users.Application.Dtos.User;
 using Users.Application.Interfaces.Services;
 using Users.Domain.Entities;
@@ -10,9 +11,17 @@ using Users.Infrastructure.Db;
 
 namespace Users.Infrastructure.Services;
 
-internal sealed class UserWriteService(ILogger logger, UserDbContext userDbContext, IConfiguration configuration)
-    : BaseService(logger.ForContext<UserWriteService>(), null), IUserWriteService
+internal sealed class UserWriteService(ILogger logger
+    , UserDbContext userDbContext
+    , IOptions<SecurityOptions> securityOptions
+    , IOptions<LockoutOptions> lockoutOptions
+    )
+    : BaseService(logger.ForContext<UserWriteService>(), null)
+    , IUserWriteService
 {
+    private readonly SecurityOptions _securityOptions = securityOptions.Value;
+    private readonly LockoutOptions _lockoutOptions = lockoutOptions.Value;
+
     public async Task<AuthUserDto> CreateUserAsync(CreateUserDto dto, CancellationToken cancellationToken = default)
     {
         var entity = new User
@@ -25,22 +34,34 @@ internal sealed class UserWriteService(ILogger logger, UserDbContext userDbConte
             FirstName = dto.FirstName,
             MiddleName = dto.MiddleName,
             LastName = dto.LastName,
-            CountryId = dto.CountryId,
-            CityId = dto.CityId,
-            StateId = dto.StateId,
-            Address = dto.Address,
-            PinCode = dto.PinCode,
             IsActive = true,
             IsApproved = false,
             PasswordHash = dto.Password,
             PasswordLastChanged = DateTime.UtcNow,
-            PasswordExpiryDate = DateTime.UtcNow.AddDays(configuration.GetValue("Security:PasswordExpiryDays", 90))
+            PasswordExpiryDate = DateTime.UtcNow.AddDays(_securityOptions.PasswordExpiryDays)
         };
+
+        foreach (var item in dto.Address)
+        {
+            var userAddress = new UserAddress
+            {
+                AddressType = item.AddressType,
+                AddressLine1 = item.AddressLine1,
+                AddressLine2 = item.AddressLine2,
+                CityId = item.CityId,
+                StateId = item.StateId,
+                CountryId = item.CountryId,
+                PinCode = item.PinCode,
+                IsPrimary = item.IsPrimary
+            };
+
+            entity.AddAddress(userAddress);
+        }
 
         userDbContext.Users.Add(entity);
         await userDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-        return new AuthUserDto
+        return new AuthUserDto(entity.UserRoles != null ? entity.UserRoles.Select(r => r.Role.Name).ToList() : [])
         {
             Id = entity.Id,
             UserName = entity.UserName,
@@ -57,7 +78,6 @@ internal sealed class UserWriteService(ILogger logger, UserDbContext userDbConte
             MfaEnabled = entity.MfaEnabled,
             MfaSecret = entity.MfaSecret,
             PasswordExpiryDate = entity.PasswordExpiryDate,
-            Roles = entity.UserRoles != null ?  entity.UserRoles.Select(r => r.Role.Name).ToList() : []
         };
     }
 
@@ -100,9 +120,9 @@ internal sealed class UserWriteService(ILogger logger, UserDbContext userDbConte
         var user = await userDbContext.Users.FirstAsync(x => x.Id == userId, cancellationToken).ConfigureAwait(false);
 
         user.FailedLoginCount++;
-        if (user.FailedLoginCount >= configuration.GetValue("Security:Lockout:MaxFailedAttempts", 5))
+        if (user.FailedLoginCount >= _lockoutOptions.MaxFailedAttempts)
         {
-            user.LockoutEndAt = DateTime.UtcNow.AddMinutes(configuration.GetValue("Security:Lockout:LockoutMinutes", 15));
+            user.LockoutEndAt = DateTime.UtcNow.AddMinutes(_lockoutOptions.LockoutMinutes);
             user.FailedLoginCount = 0;
         }
 
@@ -123,7 +143,71 @@ internal sealed class UserWriteService(ILogger logger, UserDbContext userDbConte
         var user = await userDbContext.Users.FirstAsync(x => x.Id == userId, cancellationToken).ConfigureAwait(false);
         user.PasswordHash = hash;
         user.PasswordLastChanged = DateTime.UtcNow;
-        user.PasswordExpiryDate = DateTime.UtcNow.AddDays(configuration.GetValue("Security:PasswordExpiryDays", 90));
+        user.PasswordExpiryDate = DateTime.UtcNow.AddDays(_securityOptions.PasswordExpiryDays);
+
+        await userDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task ApproveUser(int userId, CancellationToken cancellationToken = default)
+    {
+        var user = await userDbContext.Users.FirstAsync(x => x.Id == userId, cancellationToken).ConfigureAwait(false);
+        user.IsApproved = true;
+
+        await userDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task UnlockUser(int userId, CancellationToken cancellationToken = default)
+    {
+        var user = await userDbContext.Users.FirstAsync(x => x.Id == userId, cancellationToken).ConfigureAwait(false);
+
+        // Update fields
+        user.LockoutEndAt = null;
+        user.FailedLoginCount = 0;
+
+        //ToDo LoginHistory should be updated
+        //// Create a login history entry if the table exists in your DbContext
+        //var history = new LoginHistory
+        //{
+        //    UserId = user.Id,
+        //    LogoutTime = null,
+        //    IpAddress = ip,
+        //    //Device = Request.Headers["User-Agent"].ToString(),
+        //    Status = Status.SUCCESS,
+        //    //Message = "Account unlocked by admin"
+        //};
+
+        //loginHistoryService.LogoutAsync()
+
+        //ToDo DashboardAlert should be updated
+        //var alert = new DashboardAlert
+        //{
+        //    UserId = user.Id,
+        //    Title = "Account Unlocked",
+        //    Message = "Your account has been unlocked by an administrator. Please login and verify.",
+        //    IsRead = false,
+        //    CreatedTime = DateTime.UtcNow
+        //};
+        //_db.DashboardAlerts.Add(alert);
+        //await _db.SaveChangesAsync().ConfigureAwait(false);
+
+        await userDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task AssignRoles(int userId, ICollection<int> roleIds, CancellationToken cancellationToken = default)
+    {
+        // remove existing roles
+        var existing = await userDbContext.UserRoles.Where(ur => ur.UserId == userId).ToListAsync(cancellationToken).ConfigureAwait(false);
+        userDbContext.UserRoles.RemoveRange(existing);
+
+        // add new roles
+        foreach (var roleId in roleIds)
+        {
+            userDbContext.UserRoles.Add(new UserRole
+            {
+                UserId = userId,
+                RoleId = roleId
+            });
+        }
 
         await userDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }

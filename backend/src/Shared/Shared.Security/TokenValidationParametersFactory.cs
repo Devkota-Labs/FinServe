@@ -1,5 +1,5 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Shared.Security.Configurations;
 using System.Security.Claims;
 using System.Text;
 
@@ -7,21 +7,21 @@ namespace Shared.Security;
 
 public static class TokenValidationParametersFactory
 {
-    public static TokenValidationParameters Create(IConfiguration config)
+    public static TokenValidationParameters Create(JwtOptions options)
     {
-        ArgumentNullException.ThrowIfNull(config);
+        ArgumentNullException.ThrowIfNull(options);
 
-        var secret = config["Jwt:Key"] ?? string.Empty;
+        var secret = options.Key ?? string.Empty;
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         return new TokenValidationParameters
         {
             ValidateIssuer = true,
+            ValidIssuer = options.Issuer,
             ValidateAudience = true,
+            ValidAudience = options.Audience,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = key,                
-            ValidIssuer = config["Jwt:Issuer"],
-            ValidAudience = config["Jwt:Audience"],
             RoleClaimType = ClaimTypes.Role,
         };
     }

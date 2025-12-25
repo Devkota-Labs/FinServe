@@ -20,7 +20,7 @@ internal sealed class CountryEfConfig : IEntityTypeConfiguration<Country>
         builder.HasMany(x => x.States)
                .WithOne(x => x.Country)
                .HasForeignKey(x => x.CountryId)
-               .OnDelete(DeleteBehavior.Cascade);
+               .OnDelete(DeleteBehavior.Restrict);
 
         CountrySeeder.Seed(builder);
     }

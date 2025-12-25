@@ -17,17 +17,17 @@ internal sealed class MenuService(ILogger logger, IMenuRepository repo)
 
         var result = entities.Select(Map).ToList();
 
-        return Result<ICollection<MenuDto>>.Ok(result);
+        return Result.Ok<ICollection<MenuDto>>(result);
     }
 
-    public async Task<Result<MenuDto?>> GetByIdAsync(int id, CancellationToken cancellationToken)
+    public async Task<Result<MenuDto>> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
-        var entities = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
+        var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
-        if (entities == null)
-            return Result<MenuDto?>.Fail("Menu not found");
+        if (entity == null)
+            return Result.Fail<MenuDto>("Menu not found");
 
-        return Result<MenuDto?>.Ok(Map(entities));
+        return Result.Ok(Map(entity));
     }
 
     public async Task<Result<MenuDto>> CreateAsync(CreateMenuDto dto, CancellationToken cancellationToken)
@@ -36,7 +36,7 @@ internal sealed class MenuService(ILogger logger, IMenuRepository repo)
 
         if (exists is not null)
         {
-            return Result<MenuDto>.Fail($"Menu with name {exists.Name} already exists.");
+            return Result.Fail<MenuDto>($"Menu with name {exists.Name} already exists.");
         }
 
         var newEntity = new Menu
@@ -50,7 +50,7 @@ internal sealed class MenuService(ILogger logger, IMenuRepository repo)
 
         await repo.AddAsync(newEntity, cancellationToken).ConfigureAwait(false);
 
-        return Result<MenuDto>.Ok("Menu created successfully.", Map(newEntity));
+        return Result.Ok("Menu created successfully.", Map(newEntity));
     }
 
     public async Task<Result<MenuDto>> UpdateAsync(int id, UpdateMenuDto dto, CancellationToken cancellationToken)
@@ -58,7 +58,7 @@ internal sealed class MenuService(ILogger logger, IMenuRepository repo)
         var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)
-            return Result<MenuDto>.Fail("Menu not found.");
+            return Result.Fail<MenuDto>("Menu not found.");
 
         if (dto.Name is not null)
         {
@@ -66,7 +66,7 @@ internal sealed class MenuService(ILogger logger, IMenuRepository repo)
 
             if (exists is not null)
             {
-                return Result<MenuDto>.Fail($"Menu with name {exists.Name} already exists.");
+                return Result.Fail<MenuDto>($"Menu with name {exists.Name} already exists.");
             }
 
             entity.Name = dto.Name;
@@ -79,7 +79,7 @@ internal sealed class MenuService(ILogger logger, IMenuRepository repo)
 
         await repo.UpdateAsync(entity, cancellationToken).ConfigureAwait(false);
 
-        return Result<MenuDto>.Ok("Menu updated successfully", Map(entity));
+        return Result.Ok("Menu updated successfully", Map(entity));
     }
 
     public async Task<Result<MenuDto>> DeleteAsync(int id, CancellationToken cancellationToken)
@@ -87,11 +87,11 @@ internal sealed class MenuService(ILogger logger, IMenuRepository repo)
         var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)
-            return Result<MenuDto>.Fail("Menu not found.");
+            return Result.Fail<MenuDto>("Menu not found.");
 
         await repo.DeleteAsync(entity, cancellationToken).ConfigureAwait(false);
 
-        return Result<MenuDto>.Ok("Menu deleted successfully.", Map(entity));
+        return Result.Ok("Menu deleted successfully.", Map(entity));
     }
 
     private static MenuDto Map(Menu menu)

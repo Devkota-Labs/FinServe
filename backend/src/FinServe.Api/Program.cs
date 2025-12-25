@@ -1,11 +1,13 @@
-﻿using Asp.Versioning;
+﻿using Admin.Infrastructure.Module;
+using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Auth.Infrastructure.Module;
 using FinServe.Api.Configurations;
+using FinServe.Api.ConfigureOptions;
 using FinServe.Api.Extensions;
 using FinServe.Api.Services;
-using FinServe.Api.Swagger;
 using Location.Infrastructure.Module;
+using Lookup.Application;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -32,11 +34,12 @@ namespace FinServe.Api;
 
 internal sealed class Program
 {
-    private const string _appName = "Fin Serve API";
+    private static string _appName = "API";
     private const string _stopCommand = "STOP";
     private static ILogger? _logger;
     public static async Task Main(string[] args)
     {
+#pragma warning disable CA1031 // Do not catch general exception types
         try
         {
             var mainThreadName = "Main Thread";
@@ -61,6 +64,7 @@ internal sealed class Program
             var appConfig = builder.Configuration.GetSection(AppConfig.SectionName).Get<AppConfig>() ?? throw new InvalidOperationException("AppConfig section is not defined.");
 
             GCSettings.LatencyMode = appConfig.GCLatencyMode;
+            _appName = $"{appConfig.Branding.AppName} API";
 
             SelfLog.Enable(msg => Console.Error.WriteLine($"Serilog SelfLog: {msg}"));
 
@@ -110,8 +114,9 @@ internal sealed class Program
                 {
                     options.InvalidModelStateResponseFactory = context =>
                     {                        var errors = context.ModelState
-                        .Where(kvp => kvp.Value.Errors.Any())
-                        .SelectMany(kvp => kvp.Value.Errors.Select(e =>
+                        .Where(kvp => kvp.Value != null && kvp.Value.Errors.Any())
+                        .SelectMany(kvp => kvp.Value is null ? [] : kvp.Value.Errors
+                        .Select(e =>
                         new ValidationError(kvp.Key, e.ErrorMessage)))
                         .ToList();
 
@@ -123,6 +128,8 @@ internal sealed class Program
                 .AddApplicationPart(typeof(Auth.Api.AssemblyReference).Assembly)
                 .AddApplicationPart(typeof(Location.Api.AssemblyReference).Assembly)
                 .AddApplicationPart(typeof(Users.Api.AssemblyReference).Assembly)
+                .AddApplicationPart(typeof(Lookup.Api.AssemblyReference).Assembly)
+                .AddApplicationPart(typeof(Admin.Api.AssemblyReference).Assembly)
                 ;
             ;
 
@@ -167,13 +174,15 @@ internal sealed class Program
             // Register Module Services
             // -----------------------------------------------
             builder.Services
-                .AddSharedInfrastructure()
-                .AddSharedCommonModule(builder.Configuration)
-                .AddSharedLoggingModule(builder.Configuration)
-                .AddSharedSecurityModule(builder.Configuration)
+                .AddSharedInfrastructure(AppConfig.SectionName)
+                .AddSharedCommonModule()
+                .AddSharedLoggingModule()
+                .AddSharedSecurityModule(AppConfig.SectionName)
                 .AddLocationModule(builder.Configuration)
                 .AddUserModule(builder.Configuration)
-                .AddAuthModule(builder.Configuration)
+                .AddAuthModule(AppConfig.SectionName, builder.Configuration)
+                .AddAdminModule()
+                .AddLookupApplication()
                 ;
 
             builder.Services.AddMemoryCache();
@@ -184,11 +193,9 @@ internal sealed class Program
             // -------------------------------------------------------------
             // Authentication + Authorization
             // -------------------------------------------------------------
+            builder.Services.AddSingleton<IConfigureOptions<JwtBearerOptions>, ConfigureJwtBearerOptions>();
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-                {
-                    options.TokenValidationParameters = TokenValidationParametersFactory.Create(builder.Configuration);
-                });
+                .AddJwtBearer();
 
             builder.Services.AddAuthorization();
 
@@ -228,6 +235,8 @@ internal sealed class Program
 
             _logger = GetService<ILogger>().ForContext<Program>();
 
+            _logger?.Information("Application Starting. {_appName} at {Now}.", _appName, DateTimeUtil.Now);
+
             // -------------------------------------------------------------
             // Apply Migrations Automatically (Optional)
             // -------------------------------------------------------------
@@ -235,6 +244,7 @@ internal sealed class Program
             app.AddLocationMigrations();
             app.AddUserMigrations();
             app.AddAuthMigrations();
+            app.AddAdminMigrations();
 
             //if (app.Environment.IsDevelopment())
             {
@@ -249,7 +259,7 @@ internal sealed class Program
                     {
                         options.SwaggerEndpoint(
                             $"/swagger/{description.GroupName}/swagger.json",
-                            $"FinServe API {description.GroupName.ToUpperInvariant()}"
+                            $"{appConfig.Branding.AppName} API {description.GroupName.ToUpperInvariant()}"
                         );
                     }
                 });
@@ -260,19 +270,34 @@ internal sealed class Program
             // -----------------------------------------------
             app.UseMiddleware<RequestLoggingMiddleware>();
 
+            // -------------------------------------------------------------
+            // Logging (as early as possible)
+            // -------------------------------------------------------------
             app.UseSerilogRequestLogging();                
-            app.UseCors("AppCorsPolicy");
+
+            // -------------------------------------------------------------
+            // HTTPS should be before routing & auth
+            // -------------------------------------------------------------
+            app.UseHttpsRedirection();
+
+            // -------------------------------------------------------------
+            // Routing
+            // -------------------------------------------------------------
             app.UseRouting();
 
             // -------------------------------------------------------------
-            // HTTPS + Auth Middlewares
+            // CORS must be BETWEEN UseRouting and Auth
             // -------------------------------------------------------------
-            app.UseHttpsRedirection();
+            app.UseCors("AppCorsPolicy");
+
+            // -------------------------------------------------------------
+            // Security
+            // -------------------------------------------------------------
             app.UseAuthentication();
             app.UseAuthorization();
 
             // -------------------------------------------------------------
-            // Map Controllers
+            // Endpoints
             // -------------------------------------------------------------
             app.MapGet("/", () => Results.Redirect("/swagger"));
             app.MapControllers();
@@ -294,6 +319,7 @@ internal sealed class Program
             OnApplicationStopping();
             OnApplicationStopped();
         }
+#pragma warning restore CA1031 // Do not catch general exception types
     }
 
     private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)

@@ -13,4 +13,6 @@ public interface IUserReadService
     Task<bool> MobileExistsAsync(string mobile, CancellationToken cancellationToken = default);
     Task<bool> UserNameExistsAsync(string username, CancellationToken cancellationToken = default);
     Task<IEnumerable<AuthUserDto>> GetUsersWithExpiringPasswordsAsync(TimeSpan within, CancellationToken cancellationToken = default);
+
+    Task<ICollection<PendingUserDto>> GetUnApprovedUsers(CancellationToken cancellationToken = default);
 }

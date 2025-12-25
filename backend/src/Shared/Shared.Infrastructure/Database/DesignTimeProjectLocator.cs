@@ -7,8 +7,11 @@ internal static class DesignTimeProjectLocator
         // Get the assembly where the DbContext exists
         var assembly = typeof(TDbContext).Assembly;
 
+        if (assembly is null)
+            throw new InvalidOperationException("Assembly is null.");
+
         // Get directory of that assembly
-        var assemblyPath = Path.GetDirectoryName(assembly.Location)
+        var assemblyPath = Path.GetDirectoryName(AppContext.BaseDirectory)
             ?? throw new InvalidOperationException("Unable to determine assembly path.");
 
         // Traverse upward until .csproj file is found

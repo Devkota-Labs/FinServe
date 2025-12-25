@@ -20,12 +20,17 @@ export default function Header({ sidebarOpen, setSidebarOpen }) {
 
   return (
     <nav className="w-full py-5 px-6 md:px-20 flex justify-between items-center bg-white/80 backdrop-blur border-b">
-      <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-        FinServe
-      </h1>
 
+      {!user ? (
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+          <Link href="/">FinServe</Link>
+        </h1>
+      ) : (
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+          <Link href="/admin/dashboard">FinServe</Link>
+        </h1>
+      )}
       <div className="flex items-center gap-4">
-
         {/* MOBILE TOGGLE BUTTON — ONLY WHEN LOGGED IN */}
         {user && (
           <button

@@ -55,7 +55,7 @@ export default function StatesPage() {
         stateCode,
         countryId
       });
-      if (res?.statusCode === 200 || res?.statusCode === 201) {
+      if (res?.success===true) {
         setSuccessMsg("State added successfully!");
         reload();
         resetForm();

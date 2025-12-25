@@ -22,7 +22,7 @@ partial class LocationDbContextModelSnapshot : ModelSnapshot
 
         MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
-        modelBuilder.Entity("Location.Domain.City", b =>
+        modelBuilder.Entity("Location.Domain.Entities.City", b =>
             {
                 b.Property<int>("Id")
                     .ValueGeneratedOnAdd()
@@ -96,7 +96,7 @@ partial class LocationDbContextModelSnapshot : ModelSnapshot
                     });
             });
 
-        modelBuilder.Entity("Location.Domain.Country", b =>
+        modelBuilder.Entity("Location.Domain.Entities.Country", b =>
             {
                 b.Property<int>("Id")
                     .ValueGeneratedOnAdd()
@@ -454,7 +454,7 @@ partial class LocationDbContextModelSnapshot : ModelSnapshot
                     });
             });
 
-        modelBuilder.Entity("Location.Domain.State", b =>
+        modelBuilder.Entity("Location.Domain.Entities.State", b =>
             {
                 b.Property<int>("Id")
                     .ValueGeneratedOnAdd()
@@ -528,34 +528,34 @@ partial class LocationDbContextModelSnapshot : ModelSnapshot
                     });
             });
 
-        modelBuilder.Entity("Location.Domain.City", b =>
+        modelBuilder.Entity("Location.Domain.Entities.City", b =>
             {
-                b.HasOne("Location.Domain.State", "State")
+                b.HasOne("Location.Domain.Entities.State", "State")
                     .WithMany("Cities")
                     .HasForeignKey("StateId")
-                    .OnDelete(DeleteBehavior.Cascade)
+                    .OnDelete(DeleteBehavior.Restrict)
                     .IsRequired();
 
                 b.Navigation("State");
             });
 
-        modelBuilder.Entity("Location.Domain.State", b =>
+        modelBuilder.Entity("Location.Domain.Entities.State", b =>
             {
-                b.HasOne("Location.Domain.Country", "Country")
+                b.HasOne("Location.Domain.Entities.Country", "Country")
                     .WithMany("States")
                     .HasForeignKey("CountryId")
-                    .OnDelete(DeleteBehavior.Cascade)
+                    .OnDelete(DeleteBehavior.Restrict)
                     .IsRequired();
 
                 b.Navigation("Country");
             });
 
-        modelBuilder.Entity("Location.Domain.Country", b =>
+        modelBuilder.Entity("Location.Domain.Entities.Country", b =>
             {
                 b.Navigation("States");
             });
 
-        modelBuilder.Entity("Location.Domain.State", b =>
+        modelBuilder.Entity("Location.Domain.Entities.State", b =>
             {
                 b.Navigation("Cities");
             });

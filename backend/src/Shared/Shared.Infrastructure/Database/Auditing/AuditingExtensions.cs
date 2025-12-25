@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Shared.Application.Interfaces.Entities;
 
 namespace Shared.Infrastructure.Database.Auditing;
 

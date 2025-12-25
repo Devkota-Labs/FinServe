@@ -39,12 +39,9 @@ export default function ForgotPasswordForm() {
     }
     // Call API
     sendResetLink(email);
-
   }
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-
       {/* Alerts */}
       {errorMsg && <AppAlert type="error" message={errorMsg} />}
       {successMsg && <AppAlert type="success" message={successMsg} />}

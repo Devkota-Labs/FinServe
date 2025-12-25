@@ -15,9 +15,11 @@ internal sealed class JwtTokenGenerator(ILogger logger, IOptions<JwtOptions> jwt
 {
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
 
-    public string GenerateToken(int userId, string name, string email, IEnumerable<string> roles)
+    public string GenerateToken(int userId, string name, string email, IEnumerable<string>? roles)
     {
-        var secret = _jwtOptions.Key ?? throw new InvalidOperationException("Jwt:Key not configured");
+        ArgumentNullException.ThrowIfNull(_jwtOptions);
+
+        var secret = _jwtOptions.Key;
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -29,7 +31,8 @@ internal sealed class JwtTokenGenerator(ILogger logger, IOptions<JwtOptions> jwt
             new(ClaimTypes.NameIdentifier, name),
         };
 
-        claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
+        if(roles is not null)
+            claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
 
         var token = new JwtSecurityToken(
             issuer: _jwtOptions.Issuer,

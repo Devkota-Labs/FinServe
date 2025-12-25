@@ -9,195 +9,194 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Auth.Infrastructure.Migrations
+namespace Auth.Infrastructure.Migrations;
+
+[DbContext(typeof(AuthDbContext))]
+[Migration("20251214134827_UnusedCodeRemoved")]
+partial class UnusedCodeRemoved
 {
-    [DbContext(typeof(AuthDbContext))]
-    [Migration("20251214134827_UnusedCodeRemoved")]
-    partial class UnusedCodeRemoved
+    /// <inheritdoc />
+    protected override void BuildTargetModel(ModelBuilder modelBuilder)
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
-        {
 #pragma warning disable 612, 618
-            modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.11")
-                .HasAnnotation("Relational:MaxIdentifierLength", 64);
+        modelBuilder
+            .HasAnnotation("ProductVersion", "9.0.11")
+            .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
-            MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
+        MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
-            modelBuilder.Entity("Auth.Domain.Entities.LoginHistory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("Id");
+        modelBuilder.Entity("Auth.Domain.Entities.LoginHistory", b =>
+            {
+                b.Property<int>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("int")
+                    .HasColumnName("Id");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Device")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Device");
+                b.Property<string>("Device")
+                    .IsRequired()
+                    .HasColumnType("longtext")
+                    .HasColumnName("Device");
 
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Email");
+                b.Property<string>("Email")
+                    .IsRequired()
+                    .HasColumnType("longtext")
+                    .HasColumnName("Email");
 
-                    b.Property<string>("IpAddress")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Ip_Address");
+                b.Property<string>("IpAddress")
+                    .IsRequired()
+                    .HasColumnType("longtext")
+                    .HasColumnName("Ip_Address");
 
-                    b.Property<DateTime?>("LoginTime")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("Login_Time");
+                b.Property<DateTime?>("LoginTime")
+                    .HasColumnType("datetime(6)")
+                    .HasColumnName("Login_Time");
 
-                    b.Property<DateTime?>("LogoutTime")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("Logout_Time");
+                b.Property<DateTime?>("LogoutTime")
+                    .HasColumnType("datetime(6)")
+                    .HasColumnName("Logout_Time");
 
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Message");
+                b.Property<string>("Message")
+                    .IsRequired()
+                    .HasColumnType("longtext")
+                    .HasColumnName("Message");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("int")
-                        .HasColumnName("Status");
+                b.Property<int>("Status")
+                    .HasColumnType("int")
+                    .HasColumnName("Status");
 
-                    b.Property<int?>("UserId")
-                        .HasColumnType("int")
-                        .HasColumnName("User_Id");
+                b.Property<int?>("UserId")
+                    .HasColumnType("int")
+                    .HasColumnName("User_Id");
 
-                    b.HasKey("Id");
+                b.HasKey("Id");
 
-                    b.ToTable("tbl_Auth_LoginHistories", (string)null);
-                });
+                b.ToTable("tbl_Auth_LoginHistories", (string)null);
+            });
 
-            modelBuilder.Entity("Auth.Domain.Entities.OtpVerification", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("Id");
+        modelBuilder.Entity("Auth.Domain.Entities.OtpVerification", b =>
+            {
+                b.Property<int>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("int")
+                    .HasColumnName("Id");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime?>("ConsumedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("Consumed_At");
+                b.Property<DateTime?>("ConsumedAt")
+                    .HasColumnType("datetime(6)")
+                    .HasColumnName("Consumed_At");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("datetime(6)")
+                    .HasColumnName("Created_At");
 
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("Expires_At");
+                b.Property<DateTime>("ExpiresAt")
+                    .HasColumnType("datetime(6)")
+                    .HasColumnName("Expires_At");
 
-                    b.Property<int>("Purpose")
-                        .HasColumnType("int")
-                        .HasColumnName("Purpose");
+                b.Property<int>("Purpose")
+                    .HasColumnType("int")
+                    .HasColumnName("Purpose");
 
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Token");
+                b.Property<string>("Token")
+                    .IsRequired()
+                    .HasColumnType("longtext")
+                    .HasColumnName("Token");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int")
-                        .HasColumnName("User_Id");
+                b.Property<int>("UserId")
+                    .HasColumnType("int")
+                    .HasColumnName("User_Id");
 
-                    b.HasKey("Id");
+                b.HasKey("Id");
 
-                    b.ToTable("tbl_Auth_Otp_Verifications");
-                });
+                b.ToTable("tbl_Auth_Otp_Verifications");
+            });
 
-            modelBuilder.Entity("Auth.Domain.Entities.PasswordHistory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("Id");
+        modelBuilder.Entity("Auth.Domain.Entities.PasswordHistory", b =>
+            {
+                b.Property<int>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("int")
+                    .HasColumnName("Id");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedTime")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_Time");
+                b.Property<DateTime>("CreatedTime")
+                    .HasColumnType("datetime(6)")
+                    .HasColumnName("Created_Time");
 
-                    b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Password_Hash");
+                b.Property<string>("PasswordHash")
+                    .IsRequired()
+                    .HasColumnType("longtext")
+                    .HasColumnName("Password_Hash");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int")
-                        .HasColumnName("User_Id");
+                b.Property<int>("UserId")
+                    .HasColumnType("int")
+                    .HasColumnName("User_Id");
 
-                    b.HasKey("Id");
+                b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                b.HasIndex("UserId");
 
-                    b.ToTable("tbl_Auth_PasswordHistories", (string)null);
-                });
+                b.ToTable("tbl_Auth_PasswordHistories", (string)null);
+            });
 
-            modelBuilder.Entity("Auth.Domain.Entities.RefreshToken", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("Id");
+        modelBuilder.Entity("Auth.Domain.Entities.RefreshToken", b =>
+            {
+                b.Property<int>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("int")
+                    .HasColumnName("Id");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("Created_At");
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("datetime(6)")
+                    .HasColumnName("Created_At");
 
-                    b.Property<string>("CreatedByIp")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Created_By_Ip");
+                b.Property<string>("CreatedByIp")
+                    .HasColumnType("longtext")
+                    .HasColumnName("Created_By_Ip");
 
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("Expires_At");
+                b.Property<DateTime>("ExpiresAt")
+                    .HasColumnType("datetime(6)")
+                    .HasColumnName("Expires_At");
 
-                    b.Property<bool>("IsUsed")
-                        .HasColumnType("tinyint(1)")
-                        .HasColumnName("Is_Used");
+                b.Property<bool>("IsUsed")
+                    .HasColumnType("tinyint(1)")
+                    .HasColumnName("Is_Used");
 
-                    b.Property<string>("ReasonRevoked")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Reason_Revoked");
+                b.Property<string>("ReasonRevoked")
+                    .HasColumnType("longtext")
+                    .HasColumnName("Reason_Revoked");
 
-                    b.Property<string>("ReplacedByToken")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Replaced_By_Token");
+                b.Property<string>("ReplacedByToken")
+                    .HasColumnType("longtext")
+                    .HasColumnName("Replaced_By_Token");
 
-                    b.Property<DateTime?>("RevokedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("Revoked_At");
+                b.Property<DateTime?>("RevokedAt")
+                    .HasColumnType("datetime(6)")
+                    .HasColumnName("Revoked_At");
 
-                    b.Property<string>("RevokedByIp")
-                        .HasColumnType("longtext")
-                        .HasColumnName("Revoked_By_Ip");
+                b.Property<string>("RevokedByIp")
+                    .HasColumnType("longtext")
+                    .HasColumnName("Revoked_By_Ip");
 
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("Token");
+                b.Property<string>("Token")
+                    .IsRequired()
+                    .HasColumnType("longtext")
+                    .HasColumnName("Token");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int")
-                        .HasColumnName("User_Id");
+                b.Property<int>("UserId")
+                    .HasColumnType("int")
+                    .HasColumnName("User_Id");
 
-                    b.HasKey("Id");
+                b.HasKey("Id");
 
-                    b.ToTable("tbl_Auth_RefreshTokens", (string)null);
-                });
+                b.ToTable("tbl_Auth_RefreshTokens", (string)null);
+            });
 #pragma warning restore 612, 618
-        }
     }
 }

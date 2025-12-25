@@ -3,7 +3,7 @@ using Shared.Common.Utils;
 
 namespace Shared.Security.Configurations;
 
-internal sealed class JwtOptions : BaseServiceConfig
+public sealed class JwtOptions : BaseServiceConfig
 {
     public const string SectionName = "Jwt";
     public required string Key { get; set; }

@@ -14,7 +14,7 @@ namespace Auth.Infrastructure.Module;
 
 public static class AuthModule
 {
-    public static IServiceCollection AddAuthModule(this IServiceCollection services, IConfiguration config)
+    public static IServiceCollection AddAuthModule(this IServiceCollection services, string appConfigSectionName, IConfiguration config)
     {
         // Module-wise DbContext
         var conn = config.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Missing DefaultConnection");
@@ -33,7 +33,7 @@ public static class AuthModule
         services.AddScoped<IPasswordPolicyService, PasswordPolicyService>();        
         services.AddHostedService<PasswordReminderHostedService>();
 
-        services.AddAuthApplication();
+        services.AddAuthApplication(appConfigSectionName);
 
         return services;
     }

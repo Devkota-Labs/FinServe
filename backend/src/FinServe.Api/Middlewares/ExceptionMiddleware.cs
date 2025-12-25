@@ -10,6 +10,7 @@ internal sealed class ExceptionMiddleware(Serilog.ILogger logger, RequestDelegat
 {
     public async Task InvokeAsync(HttpContext httpContext)
     {
+#pragma warning disable CA1031 // Do not catch general exception types
         try
         {
             await next(httpContext).ConfigureAwait(false);
@@ -19,6 +20,7 @@ internal sealed class ExceptionMiddleware(Serilog.ILogger logger, RequestDelegat
             Logger.Error(ex, "Unhandled exception");
             await HandleExceptionAsync(httpContext, ex).ConfigureAwait(false);
         }
+#pragma warning restore CA1031 // Do not catch general exception types
     }
 
     private static async Task HandleExceptionAsync(HttpContext context, Exception ex)

@@ -1,5 +1,5 @@
 ﻿using Location.Application.Dtos;
-using Shared.Application.Interfaces;
+using Shared.Application.Interfaces.Services;
 
 namespace Location.Application.Interfaces.Services;
 

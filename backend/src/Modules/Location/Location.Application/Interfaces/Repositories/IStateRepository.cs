@@ -1,9 +1,9 @@
 ﻿using Location.Domain.Entities;
-using Shared.Application.Interfaces;
+using Shared.Application.Interfaces.Repositories;
 
 namespace Location.Application.Interfaces.Repositories;
 
 public interface IStateRepository : IMasterRepository<State>
 {
-    Task<List<State>?> GetByCountryAsync(int countryId, CancellationToken cancellationToken = default);
+    Task<ICollection<State>> GetByCountryAsync(int countryId, CancellationToken cancellationToken = default);
 }

@@ -16,23 +16,23 @@ export function useRegistration(setErrorMsg: any, setSuccessMsg: any) {
     setSuccessMsg("");
     try {
       const payload = {
+        userName: form.userName.trim(),
         email: form.email.trim(),
-        mobile: form.mobile.trim(),
-        gender: form.gender ,
-        dateOfBirth: form.dateOfBirth, 
-        firstName: form.firstName.trim(),
-        middleName: form.middleName ? form.middleName.trim() : null, 
+        mobile: form.mobile ,
+        gender: form.gender, 
+        dateOfBirth: form.dateOfBirth,
+        firstName: form.firstName ? form.firstName.trim() : null, 
+        middleName: form.middleName.trim(),
         lastName: form.lastName.trim(),
         countryId: Number(form.countryId), 
+        cityId: Number(form.cityId), 
         stateId: Number(form.stateId),    
-        cityId: Number(form.cityId),       
         address: form.address.trim(),
         pinCode: form.pinCode.trim(),
         password: form.password,
       };
-      
       let res=await api.register(payload);
-      if(res.statusCode==="OK")
+      if(res.success===true)
       {
         if(res?.message)
         {

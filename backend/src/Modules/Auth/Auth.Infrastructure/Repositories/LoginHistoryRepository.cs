@@ -9,7 +9,7 @@ internal sealed class LoginHistoryRepository(AuthDbContext db) : ILoginHistoryRe
 {
     public async Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return await db.LoginHistories.AnyAsync(x => x.Id == id, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<LoginHistory?> GetByIdAsync(int id, CancellationToken cancellationToken = default)

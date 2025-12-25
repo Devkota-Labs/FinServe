@@ -17,29 +17,29 @@ internal sealed class CityService(ILogger logger, ICityRepository repo)
 
         var result = entities.Select(Map).ToList();
 
-        return Result<ICollection<CityDto>>.Ok(result);
+        return Result.Ok<ICollection<CityDto>>(result);
     }
 
-    public async Task<Result<CityDto?>> GetByIdAsync(int id, CancellationToken cancellationToken)
+    public async Task<Result<CityDto>> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
         var entities = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entities == null)
-            return Result<CityDto?>.Fail("City not found");
+            return Result.Fail<CityDto>("City not found");
 
-        return Result<CityDto?>.Ok(Map(entities));
+        return Result.Ok(Map(entities));
     }
 
-    public async Task<Result<ICollection<CityDto>?>> GetByStateAsync(int stateId, CancellationToken cancellationToken)
+    public async Task<Result<ICollection<CityDto>>> GetByStateAsync(int stateId, CancellationToken cancellationToken)
     {
         var entities = await repo.GetByStateAsync(stateId, cancellationToken).ConfigureAwait(false);
 
         if (entities == null || entities.Count == 0)
-            return Result<ICollection<CityDto>?>.Fail($"No cities found for state id {stateId}");
+            return Result.Fail<ICollection<CityDto>>($"No cities found for state id {stateId}");
 
         var result = entities.Select(Map).ToList();
 
-        return Result<ICollection<CityDto>?>.Ok(result);
+        return Result.Ok<ICollection<CityDto>>(result);
     }
 
     public async Task<Result<CityDto>> CreateAsync(CreateCityDto dto, CancellationToken cancellationToken)
@@ -50,7 +50,7 @@ internal sealed class CityService(ILogger logger, ICityRepository repo)
 
         if (exists is not null)
         {
-            return Result<CityDto>.Fail($"City with name {exists.Name} and state {exists.State} already exists.");
+            return Result.Fail<CityDto>($"City with name {exists.Name} and state {exists.State} already exists.");
         }
 
         var newEntity = new City
@@ -61,7 +61,7 @@ internal sealed class CityService(ILogger logger, ICityRepository repo)
 
         await repo.AddAsync(newEntity, cancellationToken).ConfigureAwait(false);
 
-        return Result<CityDto>.Ok("City created successfully.", Map(newEntity));
+        return Result.Ok("City created successfully.", Map(newEntity));
     }
 
     public async Task<Result<CityDto>> UpdateAsync(int id, UpdateCityDto dto, CancellationToken cancellationToken)
@@ -69,7 +69,7 @@ internal sealed class CityService(ILogger logger, ICityRepository repo)
         var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)
-            return Result<CityDto>.Fail("City not found.");
+            return Result.Fail<CityDto>("City not found.");
 
         if (dto.Name is not null)
         {
@@ -79,7 +79,7 @@ internal sealed class CityService(ILogger logger, ICityRepository repo)
 
             if (exists is not null)
             {
-                return Result<CityDto>.Fail($"City with name {exists.Name} and state {exists.State.Name} already exists.");
+                return Result.Fail<CityDto>($"City with name {exists.Name} and state {exists.State.Name} already exists.");
             }
 
             entity.Name = dto.Name;
@@ -89,7 +89,7 @@ internal sealed class CityService(ILogger logger, ICityRepository repo)
 
         await repo.UpdateAsync(entity, cancellationToken).ConfigureAwait(false);
 
-        return Result<CityDto>.Ok("City updated successfully", Map(entity));
+        return Result.Ok("City updated successfully", Map(entity));
     }
 
     public async Task<Result<CityDto>> DeleteAsync(int id, CancellationToken cancellationToken)
@@ -97,11 +97,11 @@ internal sealed class CityService(ILogger logger, ICityRepository repo)
         var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)
-            return Result<CityDto>.Fail("City not found.");
+            return Result.Fail<CityDto>("City not found.");
 
         await repo.DeleteAsync(entity, cancellationToken).ConfigureAwait(false);
 
-        return Result<CityDto>.Ok("City deleted successfully.", Map(entity));
+        return Result.Ok("City deleted successfully.", Map(entity));
     }
 
     private static CityDto Map(City city)
