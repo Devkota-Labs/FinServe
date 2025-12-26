@@ -23,7 +23,8 @@ using Users.Application.Interfaces.Services;
 
 namespace Auth.Application.Services;
 
-internal sealed class AuthService(ILogger logger,
+internal sealed class AuthService(
+    ILogger logger,
     IUserReadService usersRead, 
     IUserWriteService usersWrite, 
     IPasswordHasher passwordHasher, 
@@ -52,7 +53,8 @@ internal sealed class AuthService(ILogger logger,
     ILoginRiskService loginRiskService,
     IBackgroundTaskQ backgroundTaskQ
     )
-    : BaseService(logger.ForContext<AuthService>(), null), IAuthService
+    : BaseService(logger.ForContext<AuthService>(), null)
+    , IAuthService
 {
     private readonly TokenOptions _tokenOptions = tokenOptions.Value;
     private readonly OtpOptions _otpOptions = otpOptions.Value;
@@ -494,15 +496,15 @@ internal sealed class AuthService(ILogger logger,
             ExpiresAt = DateTime.UtcNow.AddMinutes(_tokenOptions.PasswordResetExpiryMinutes),
         };
 
-        var baseUrl = appUrlProvider.GetBaseUrl();
+        await otpRepository.AddAsync(passwordRest, cancellationToken).ConfigureAwait(false);
 
-        string verificationUrl = $"{baseUrl}api/v{_apiOptions.PasswordResetVerificationVersion}/auth/verify-reset-password?email={Uri.EscapeDataString(user.Email)}&token={passwordRest.Token}";
+        var resetPasswordUrl = $"{_frontendOptions.BaseUrl}auth/reset-password?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(passwordRest.Token)}";
 
         var evt = new PasswordResetRequestedContext
         {
             UserId = user.Id,
             UserName = user.UserName,
-            ResetLink = new Uri(verificationUrl),
+            ResetLink = new Uri(resetPasswordUrl),
             ExpiryTimeInMinutes = (int)TimeSpan.FromMinutes(_tokenOptions.PasswordResetExpiryMinutes).TotalMinutes,
         };
 
