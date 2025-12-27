@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Serilog;
 using Shared.Application.Dtos;
 using Shared.Common.Services;
+using Shared.Common.Utils;
 using Shared.Security.Configurations;
 using Users.Application.Dtos.User;
 using Users.Application.Interfaces.Services;
@@ -37,8 +38,8 @@ internal sealed class UserWriteService(ILogger logger
             IsActive = true,
             IsApproved = false,
             PasswordHash = dto.Password,
-            PasswordLastChanged = DateTime.UtcNow,
-            PasswordExpiryDate = DateTime.UtcNow.AddDays(_securityOptions.PasswordExpiryDays)
+            PasswordLastChanged = DateTimeUtil.Now,
+            PasswordExpiryDate = DateTimeUtil.Now.AddDays(_securityOptions.PasswordExpiryDays)
         };
 
         foreach (var item in dto.Address)
@@ -122,7 +123,7 @@ internal sealed class UserWriteService(ILogger logger
         user.FailedLoginCount++;
         if (user.FailedLoginCount >= _lockoutOptions.MaxFailedAttempts)
         {
-            user.LockoutEndAt = DateTime.UtcNow.AddMinutes(_lockoutOptions.LockoutMinutes);
+            user.LockoutEndAt = DateTimeUtil.Now.AddMinutes(_lockoutOptions.LockoutMinutes);
             user.FailedLoginCount = 0;
         }
 
@@ -142,8 +143,8 @@ internal sealed class UserWriteService(ILogger logger
     {
         var user = await userDbContext.Users.FirstAsync(x => x.Id == userId, cancellationToken).ConfigureAwait(false);
         user.PasswordHash = hash;
-        user.PasswordLastChanged = DateTime.UtcNow;
-        user.PasswordExpiryDate = DateTime.UtcNow.AddDays(_securityOptions.PasswordExpiryDays);
+        user.PasswordLastChanged = DateTimeUtil.Now;
+        user.PasswordExpiryDate = DateTimeUtil.Now.AddDays(_securityOptions.PasswordExpiryDays);
 
         await userDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -177,18 +178,6 @@ internal sealed class UserWriteService(ILogger logger
         //};
 
         //loginHistoryService.LogoutAsync()
-
-        //ToDo DashboardAlert should be updated
-        //var alert = new DashboardAlert
-        //{
-        //    UserId = user.Id,
-        //    Title = "Account Unlocked",
-        //    Message = "Your account has been unlocked by an administrator. Please login and verify.",
-        //    IsRead = false,
-        //    CreatedTime = DateTime.UtcNow
-        //};
-        //_db.DashboardAlerts.Add(alert);
-        //await _db.SaveChangesAsync().ConfigureAwait(false);
 
         await userDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }

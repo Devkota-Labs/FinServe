@@ -11,7 +11,7 @@ internal sealed class UserRepository(UserDbContext db) : IUserRepository
     {
         return await db.Users.AnyAsync(x => x.Id == id, cancellationToken).ConfigureAwait(false);
     }
-    
+
     public async Task<List<User>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await db.Users
@@ -45,7 +45,7 @@ internal sealed class UserRepository(UserDbContext db) : IUserRepository
             .AsNoTracking()
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(x => x.Email == email,cancellationToken).ConfigureAwait(false);
+            .FirstOrDefaultAsync(x => x.Email == email, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<User?> GetByMobileAsync(string mobile, CancellationToken cancellationToken = default)
@@ -54,7 +54,7 @@ internal sealed class UserRepository(UserDbContext db) : IUserRepository
             .AsNoTracking()
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(x => x.Mobile == mobile,cancellationToken).ConfigureAwait(false);
+            .FirstOrDefaultAsync(x => x.Mobile == mobile, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<User?> GetByUserNameOrEmailAsync(string userNameOrEmail, CancellationToken cancellationToken = default)

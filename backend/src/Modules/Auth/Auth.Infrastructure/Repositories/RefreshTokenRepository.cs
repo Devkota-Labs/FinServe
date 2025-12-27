@@ -2,6 +2,7 @@
 using Auth.Domain.Entities;
 using Auth.Infrastructure.Db;
 using Microsoft.EntityFrameworkCore;
+using Shared.Common.Utils;
 
 namespace Auth.Infrastructure.Repositories;
 
@@ -24,7 +25,7 @@ internal sealed class RefreshTokenRepository(AuthDbContext db) : IRefreshTokenRe
     {
         return await db.RefreshTokens
                         .AsNoTracking()
-                        .FirstOrDefaultAsync(x => x.Token == token && !x.IsUsed && x.RevokedAt == null && x.ExpiresAt > DateTime.UtcNow, cancellationToken)
+                        .FirstOrDefaultAsync(x => x.Token == token && !x.IsUsed && x.RevokedAt == null && x.ExpiresAt > DateTimeUtil.Now, cancellationToken)
                         .ConfigureAwait(false);
     }
 
@@ -40,7 +41,7 @@ internal sealed class RefreshTokenRepository(AuthDbContext db) : IRefreshTokenRe
     {
         // Invalidate old tokens
         var existing = await db.RefreshTokens
-            .Where(x => x.UserId == token.UserId && !x.IsUsed && x.ExpiresAt > DateTime.UtcNow)
+            .Where(x => x.UserId == token.UserId && !x.IsUsed && x.ExpiresAt > DateTimeUtil.Now)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         foreach (var t in existing)

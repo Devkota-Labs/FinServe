@@ -21,7 +21,7 @@ public static class TokenValidationParametersFactory
             ValidAudience = options.Audience,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = key,                
+            IssuerSigningKey = key,
             RoleClaimType = ClaimTypes.Role,
         };
     }

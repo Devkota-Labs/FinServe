@@ -12,6 +12,6 @@ public sealed class OtpOptions : BaseServiceConfig
 
     public override string ToString()
     {
-        return Methods.GetToString( base.ToString(), Channel, Length, ExpiryMinutes);
+        return Methods.GetToString(base.ToString(), Channel, Length, ExpiryMinutes);
     }
 }

@@ -1,3 +1,4 @@
+using Shared.Common.Utils;
 using Shared.Domain.Entities;
 
 namespace Auth.Domain.Entities;
@@ -12,6 +13,6 @@ public sealed class OtpVerification : BaseEntity
     public DateTime? ConsumedAt { get; set; }
 
     public bool IsConsumed => ConsumedAt.HasValue;
-    public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
+    public bool IsExpired => DateTimeUtil.Now >= ExpiresAt;
     public bool IsActive => !IsConsumed && !IsExpired;
 }

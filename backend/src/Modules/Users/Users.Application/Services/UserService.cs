@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Serilog;
 using Shared.Application.Results;
 using Shared.Common.Services;
+using Shared.Common.Utils;
 using Shared.Security;
 using Shared.Security.Configurations;
 using Users.Application.Dtos.User;
@@ -16,7 +17,7 @@ internal sealed class UserService(ILogger logger
     , IUserRepository repo
     , IPasswordPolicyService passwordPolicyService
     , ILocationLookupService locationLookupService
-    , IOptions<SecurityOptions> securityOptions )
+    , IOptions<SecurityOptions> securityOptions)
     : BaseService(logger.ForContext<UserService>(), null), IUserService
 {
     private readonly SecurityOptions _securityOptions = securityOptions.Value;
@@ -80,8 +81,8 @@ internal sealed class UserService(ILogger logger
             IsActive = true,
             IsApproved = false,
             PasswordHash = dto.Password,
-            PasswordLastChanged = DateTime.UtcNow,
-            PasswordExpiryDate = DateTime.UtcNow.AddDays(_securityOptions.PasswordExpiryDays)
+            PasswordLastChanged = DateTimeUtil.Now,
+            PasswordExpiryDate = DateTimeUtil.Now.AddDays(_securityOptions.PasswordExpiryDays)
         };
 
         foreach (var item in dto.Address)
@@ -119,7 +120,7 @@ internal sealed class UserService(ILogger logger
         if (dto.LastName is not null) entity.LastName = dto.LastName;
         if (dto.ProfileImageUrl is not null) entity.ProfileImageUrl = dto.ProfileImageUrl;
 
-        entity.LastUpdatedTime = DateTime.UtcNow;
+        entity.LastUpdatedTime = DateTimeUtil.Now;
 
         await repo.UpdateAsync(entity, cancellationToken).ConfigureAwait(false);
 

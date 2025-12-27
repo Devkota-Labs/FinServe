@@ -11,7 +11,7 @@ public static class AdminModule
         // Register Repositories
 
         //Register Services        
-        
+
         services.AddAdminApplication();
 
         return services;

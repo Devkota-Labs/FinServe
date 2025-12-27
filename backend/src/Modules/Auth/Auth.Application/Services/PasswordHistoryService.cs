@@ -3,11 +3,12 @@ using Auth.Application.Interfaces.Services;
 using Auth.Domain.Entities;
 using Serilog;
 using Shared.Common.Services;
+using Shared.Common.Utils;
 using Shared.Security;
 
 namespace Auth.Application.Services;
 
-internal sealed class PasswordHistoryService(ILogger logger, IPasswordHistoryRepository passwordHistoryRepository, IPasswordHasher passwordHasher) 
+internal sealed class PasswordHistoryService(ILogger logger, IPasswordHistoryRepository passwordHistoryRepository, IPasswordHasher passwordHasher)
     : BaseService(logger.ForContext<PasswordHistoryService>(), null), IPasswordHistoryService
 {
     private readonly IPasswordHistoryRepository _repo = passwordHistoryRepository;
@@ -32,7 +33,7 @@ internal sealed class PasswordHistoryService(ILogger logger, IPasswordHistoryRep
         {
             UserId = userId,
             PasswordHash = passwordHash,
-            CreatedTime = DateTime.UtcNow
+            CreatedTime = DateTimeUtil.Now
         };
 
         await _repo.AddAsync(history, cancellationToken).ConfigureAwait(false);

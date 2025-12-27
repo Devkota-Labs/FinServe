@@ -10,6 +10,7 @@ using Notification.Application.Interfaces;
 using Serilog;
 using Shared.Application.Api;
 using Shared.Application.Results;
+using Shared.Common.Utils;
 using Shared.Infrastructure.Options;
 
 namespace Auth.Api.Controllers;
@@ -37,7 +38,7 @@ public sealed class AuthController(ILogger logger
                 HttpOnly = true,
                 Secure = false, // set to true if using HTTPS
                 SameSite = SameSiteMode.None, // required for cross-origin cookies
-                Expires = DateTime.UtcNow.AddDays(30),
+                Expires = DateTimeUtil.Now.AddDays(30),
                 Path = "/" // optional, but ensures cookie is available to the whole app
             };
             // Use refresh.Token here
@@ -131,7 +132,7 @@ public sealed class AuthController(ILogger logger
                 HttpOnly = true,
                 Secure = true,       // Use HTTPS
                 SameSite = SameSiteMode.Strict,
-                Expires = DateTime.UtcNow.AddDays(30),
+                Expires = DateTimeUtil.Now.AddDays(30),
                 Path = "/api/auth/refresh"
             }
             );
@@ -195,7 +196,7 @@ public sealed class AuthController(ILogger logger
     [HttpPost("send-approval-email/{userId}")]
     public async Task<IActionResult> SendApprovalMail(int userId, CancellationToken cancellationToken)
     {
-        var serviceResponse = await authService.SendApprovalFollowUpMailAsync(userId, cancellationToken).ConfigureAwait(false);
+        var serviceResponse = await authService.SendApprovalMailAsync(userId, cancellationToken).ConfigureAwait(false);
 
         return FromResult(serviceResponse);
     }
@@ -204,7 +205,7 @@ public sealed class AuthController(ILogger logger
     [HttpPost("Reminder/{userId}")]
     public async Task<IActionResult> ManualReminder(int userId, CancellationToken cancellationToken)
     {
-        var expiry = DateTime.UtcNow.AddDays(7); // This is OK because service recalculates internally.
+        var expiry = DateTimeUtil.Now.AddDays(7); // This is OK because service recalculates internally.
         await passwordReminderService.SendReminderAsync(userId, expiry, cancellationToken).ConfigureAwait(false);
         return Accepted();
     }

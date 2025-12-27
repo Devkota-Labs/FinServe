@@ -1,3 +1,4 @@
+using Shared.Common.Utils;
 using Shared.Domain.Entities;
 using Shared.Domain.Enums;
 
@@ -21,7 +22,7 @@ public sealed class User : BaseAuditableEntity
     public bool EmailVerified { get; set; }
     public bool MobileVerified { get; set; }
     public required string PasswordHash { get; set; }
-    public DateTime PasswordLastChanged { get; set; } = DateTime.UtcNow;
+    public DateTime PasswordLastChanged { get; set; } = DateTimeUtil.Now;
     public DateTime? PasswordExpiryDate { get; set; }
     public int FailedLoginCount { get; set; }
     public DateTime? LockoutEndAt { get; set; }

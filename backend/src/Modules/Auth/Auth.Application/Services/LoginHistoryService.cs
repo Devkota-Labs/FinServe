@@ -6,11 +6,12 @@ using Serilog;
 using Shared.Application.Interfaces.Services;
 using Shared.Application.Results;
 using Shared.Common.Services;
+using Shared.Common.Utils;
 
 namespace Auth.Application.Services;
 
 internal sealed class LoginHistoryService(
-    ILogger logger, 
+    ILogger logger,
     ILoginHistoryRepository _repository,
     IDeviceResolver deviceResolver
     )
@@ -37,7 +38,7 @@ internal sealed class LoginHistoryService(
             IpAddress = deviceInfo.IpAddress,
             Device = deviceInfo.Device,
             UserAgent = deviceInfo.UserAgent,
-            LoginTime = DateTime.UtcNow
+            LoginTime = DateTimeUtil.Now
         };
 
         await _repository.AddAsync(history, cancellationToken).ConfigureAwait(false);
@@ -52,7 +53,7 @@ internal sealed class LoginHistoryService(
         if (history is null)
             return Result.Fail("Session expired / already logged out."); // session expired / already logged out
 
-        history.LogoutTime = DateTime.UtcNow;
+        history.LogoutTime = DateTimeUtil.Now;
 
         await _repository.UpdateAsync(history, cancellationToken).ConfigureAwait(false);
 

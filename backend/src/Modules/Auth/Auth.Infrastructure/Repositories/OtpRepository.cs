@@ -21,7 +21,7 @@ internal sealed class OtpRepository(AuthDbContext db) : IOtpRepository
     public async Task<OtpVerification?> GetActiveAsync(int userId, string token, OtpPurpose purpose, CancellationToken cancellationToken = default)
     {
         return await db.OtpVerifications
-                        .Where(x => x.UserId == userId && x.ConsumedAt == null && x.ExpiresAt >= DateTime.UtcNow && x.Token == token && x.Purpose == purpose)
+                        .Where(x => x.UserId == userId && x.ConsumedAt == null && x.ExpiresAt >= DateTimeUtil.Now && x.Token == token && x.Purpose == purpose)
                         .AsNoTracking()
                         .OrderByDescending(x => x.Id)
                         .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
@@ -31,9 +31,9 @@ internal sealed class OtpRepository(AuthDbContext db) : IOtpRepository
     {
         // Invalidate old tokens
         var existing = await db.OtpVerifications
-            .Where(x => x.UserId == token.UserId 
+            .Where(x => x.UserId == token.UserId
             && x.ConsumedAt == null
-            && x.ExpiresAt >= DateTime.UtcNow
+            && x.ExpiresAt >= DateTimeUtil.Now
             )
             .ToListAsync(cancellationToken).ConfigureAwait(false);
 

@@ -11,7 +11,7 @@ namespace Users.Api.Controllers;
 
 [ApiVersion("1.0")]
 [Authorize]
-public sealed class UsersController(ILogger logger, IUserService userService) 
+public sealed class UsersController(ILogger logger, IUserService userService)
     : BaseApiController(logger.ForContext<UsersController>())
 {
     [HttpGet]

@@ -60,7 +60,7 @@ internal sealed class Program
 
             //Adding Configuration Options into DI
             builder.Services.AddOptions<AppConfig>().BindConfiguration(AppConfig.SectionName).ValidateOnStart();
-            
+
 
             var appConfig = builder.Configuration.GetSection(AppConfig.SectionName).Get<AppConfig>() ?? throw new InvalidOperationException("AppConfig section is not defined.");
 
@@ -114,7 +114,8 @@ internal sealed class Program
                 .ConfigureApiBehaviorOptions(options =>
                 {
                     options.InvalidModelStateResponseFactory = context =>
-                    {                        var errors = context.ModelState
+                    {
+                        var errors = context.ModelState
                         .Where(kvp => kvp.Value != null && kvp.Value.Errors.Any())
                         .SelectMany(kvp => kvp.Value is null ? [] : kvp.Value.Errors
                         .Select(e =>
@@ -125,7 +126,7 @@ internal sealed class Program
 
                         return new ObjectResult(result) { StatusCode = (int)HttpStatusCode.BadRequest, };
                     };
-                })                
+                })
                 .AddApplicationPart(typeof(Auth.Api.AssemblyReference).Assembly)
                 .AddApplicationPart(typeof(Location.Api.AssemblyReference).Assembly)
                 .AddApplicationPart(typeof(Users.Api.AssemblyReference).Assembly)

@@ -1,3 +1,4 @@
+using Shared.Common.Utils;
 using Shared.Domain.Entities;
 
 namespace Auth.Domain.Entities;
@@ -14,9 +15,8 @@ public sealed class RefreshToken : BaseEntity
     public string? RevokedByIp { get; set; }
     public string? ReplacedByToken { get; set; }
     public string? ReasonRevoked { get; set; }
-    //public User? User { get; set; }
 
     public bool IsRevoked => RevokedAt.HasValue;
-    public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
+    public bool IsExpired => DateTimeUtil.Now >= ExpiresAt;
     public bool IsActive => !IsRevoked && !IsExpired;
 }

@@ -3,11 +3,12 @@ using Auth.Application.Interfaces.Services;
 using Auth.Domain.Entities;
 using Serilog;
 using Shared.Common.Services;
+using Shared.Common.Utils;
 using System.Security.Cryptography;
 
 namespace Auth.Application.Services;
 
-internal sealed class RefreshTokenService(ILogger logger, IRefreshTokenRepository refreshTokenRepository) 
+internal sealed class RefreshTokenService(ILogger logger, IRefreshTokenRepository refreshTokenRepository)
     : BaseService(logger.ForContext<RefreshTokenService>(), null), IRefreshTokenService
 {
     private readonly IRefreshTokenRepository _refreshTokenRepository = refreshTokenRepository;
@@ -22,9 +23,9 @@ internal sealed class RefreshTokenService(ILogger logger, IRefreshTokenRepositor
         {
             UserId = userId,
             Token = token,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = DateTimeUtil.Now,
             CreatedByIp = createdByIp,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes),
+            ExpiresAt = DateTimeUtil.Now.AddMinutes(expiryMinutes),
             IsUsed = false
         };
 
@@ -39,7 +40,7 @@ internal sealed class RefreshTokenService(ILogger logger, IRefreshTokenRepositor
 
     public async Task RevokeAsync(RefreshToken rt, string? reason = null, string? replacedBy = null, CancellationToken cancellationToken = default)
     {
-        rt.RevokedAt = DateTime.UtcNow;
+        rt.RevokedAt = DateTimeUtil.Now;
         rt.ReasonRevoked = reason;
         rt.ReplacedByToken = replacedBy;
         rt.IsUsed = true;
