@@ -46,4 +46,8 @@ internal sealed class RefreshTokenService(ILogger logger, IRefreshTokenRepositor
 
         await _refreshTokenRepository.UpdateAsync(rt, cancellationToken).ConfigureAwait(false);
     }
+    public async Task RevokeAllAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        await _refreshTokenRepository.RevokeAllAsync(userId, cancellationToken).ConfigureAwait(false);
+    }
 }

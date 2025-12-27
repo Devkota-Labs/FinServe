@@ -400,6 +400,9 @@ internal sealed class AuthService(
             return (null, Result.Fail<LoginResponseDto>("Invalid credentials."));
         }
 
+        //RESTRICT MULTIPLE SESSIONS HERE
+        await refreshTokenService.RevokeAllAsync(user.Id, cancellationToken).ConfigureAwait(false);
+
         await usersWrite.MarkSuccessLogin(user.Id, cancellationToken).ConfigureAwait(false);
 
         if (user.MfaEnabled)
