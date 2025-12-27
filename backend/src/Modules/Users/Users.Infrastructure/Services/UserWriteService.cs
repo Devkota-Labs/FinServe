@@ -154,6 +154,8 @@ internal sealed class UserWriteService(ILogger logger
         var user = await userDbContext.Users.FirstAsync(x => x.Id == userId, cancellationToken).ConfigureAwait(false);
         user.IsApproved = true;
 
+        await AssignRoles(userId, [1], cancellationToken).ConfigureAwait(false);
+
         await userDbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 

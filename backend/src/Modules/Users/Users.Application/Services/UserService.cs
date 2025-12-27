@@ -129,6 +129,9 @@ internal sealed class UserService(ILogger logger
 
     public async Task<Result<UserDto>> DeleteAsync(int id, CancellationToken cancellationToken)
     {
+        if (id is 1)
+            return Result.Fail<UserDto>("Default user can not be deleted.");
+
         var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)

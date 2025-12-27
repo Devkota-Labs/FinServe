@@ -82,6 +82,9 @@ internal sealed class RoleService(ILogger logger, IRoleRepository repo)
 
     public async Task<Result<RoleDto>> DeleteAsync(int id, CancellationToken cancellationToken)
     {
+        if (id is 1 or 2)
+            return Result.Fail<RoleDto>("Default roles can not be deleted.");
+
         var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)

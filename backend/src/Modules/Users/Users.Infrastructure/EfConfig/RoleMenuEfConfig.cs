@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Users.Domain.Entities;
+using Users.Infrastructure.Seed;
 
 namespace Users.Infrastructure.EfConfig;
 
@@ -24,5 +25,7 @@ internal sealed class RoleMenuEfConfig : IEntityTypeConfiguration<RoleMenu>
             .WithMany(r => r.RoleMenus)
             .HasForeignKey(x => x.MenuId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        RoleMenuSeeder.Seed(builder);
     }
 }

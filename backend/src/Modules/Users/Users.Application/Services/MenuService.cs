@@ -84,6 +84,9 @@ internal sealed class MenuService(ILogger logger, IMenuRepository repo)
 
     public async Task<Result<MenuDto>> DeleteAsync(int id, CancellationToken cancellationToken)
     {
+        if (id is 1 or 9)
+            return Result.Fail<MenuDto>("Default menus can not be deleted.");
+
         var entity = await repo.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
 
         if (entity == null)

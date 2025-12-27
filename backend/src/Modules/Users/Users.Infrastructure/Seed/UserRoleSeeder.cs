@@ -12,7 +12,7 @@ internal static class UserRoleSeeder
         var adminUser = new UserRole
         {
             Id = 1,
-            RoleId = 1,
+            RoleId = 2,
             UserId = 1,
             CreatedTime = seedTime,
             CreatedBy = "Admin"
