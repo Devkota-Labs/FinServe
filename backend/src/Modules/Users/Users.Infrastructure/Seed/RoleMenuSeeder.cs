@@ -9,7 +9,8 @@ internal static class RoleMenuSeeder
     {
         builder.HasData
             (
-            new RoleMenu { Id = 1, RoleId = 1, MenuId = 9 }
+            new RoleMenu { Id = 1, RoleId = 1, MenuId = 1 },
+            new RoleMenu { Id = 2, RoleId = 1, MenuId = 9 }
             );
     }
 }
