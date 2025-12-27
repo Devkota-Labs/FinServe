@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import {
   AlertDialog,
@@ -9,21 +9,36 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/alert-dialog"
+import { api } from "@/lib/api"
+import { useState } from "react"
 
 export function ApproveRejectDialog({
   open,
   onClose,
-  onConfirm,
   type,
-  name
+  name,
+  userId
 }: {
-  open: boolean;
-  type: "approve" | "reject";
-  name: string;
-  onClose: () => void;
-  onConfirm: () => void;
+  open: boolean
+  type: "approve" | "reject"
+  name: string
+  userId: number
+  onClose: (success: boolean) => void
 }) {
+  const [loading, setLoading] = useState(false)
+  const handleConfirm = async () => {
+    setLoading(true)
+    try {
+      await api.approveUser(userId)
+      onClose(true)
+    } catch (err) {
+      console.error(err)
+      onClose(false) 
+    } finally {
+      setLoading(false)
+    }
+  }
   return (
     <AlertDialog open={open}>
       <AlertDialogContent>
@@ -38,15 +53,19 @@ export function ApproveRejectDialog({
         </AlertDialogHeader>
 
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel onClick={() => onClose(false)}>
+            Cancel
+          </AlertDialogCancel>
+
           <AlertDialogAction
-            onClick={onConfirm}
+            onClick={handleConfirm}
+            disabled={loading}
             className={type === "approve" ? "bg-green-600" : "bg-red-600"}
           >
-            {type === "approve" ? "Approve" : "Reject"}
+            {loading ? "Saving..." : type === "approve" ? "Approve" : "Reject"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
+  )
 }

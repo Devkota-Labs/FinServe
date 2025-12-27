@@ -91,6 +91,8 @@ export default function PendingUsersPage() {
                     <TableHead className="font-semibold text-gray-700">Name</TableHead>
                     <TableHead className="font-semibold text-gray-700">Email</TableHead>
                     <TableHead className="font-semibold text-gray-700">Created</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Email Verified</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Mobile Verified</TableHead>
                     <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -106,7 +108,9 @@ export default function PendingUsersPage() {
                     <TableRow key={u.id} className="hover:bg-gray-50 transition">
                       <TableCell className="font-medium">{u.fullName}</TableCell>
                       <TableCell>{u.email}</TableCell>
-                      <TableCell>{new Date(u.createdAt).toLocaleString()}</TableCell>
+                      <TableCell>{u.createdAt? new Date(u.createdAt).toISOString().split("T")[0]: "-"}</TableCell>
+                      <TableCell>{u.isEmailVerified === true ? "Y" : "N"}</TableCell>
+                      <TableCell>{u.isMobileVerified === true ? "Y" : "N"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           {/* APPROVE */}
@@ -123,9 +127,8 @@ export default function PendingUsersPage() {
                           >
                             Approve
                           </Button>
-
                           {/* REJECT */}
-                          <Button
+                          {/* <Button
                             size="sm"
                             variant="destructive"
                             onClick={() =>
@@ -137,8 +140,7 @@ export default function PendingUsersPage() {
                             }
                           >
                             Reject
-                          </Button>
-
+                          </Button> */}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -158,18 +160,27 @@ export default function PendingUsersPage() {
       </Card>
       {/* DIALOG */}
       {dialog && (
-        <ApproveRejectDialog
-          open={true}
-          name={dialog.name}
-          type={dialog.type}
-          onClose={() => setDialog(null)}
-          onConfirm={() =>
+  <ApproveRejectDialog
+    open={true}
+    userId={dialog.id}        // ✅ FIXED
+    name={dialog.name}
+    type={dialog.type}
+    onClose={(success) => {
+      setDialog(null)
+
+      if (success) {
+        toast({
+          title: dialog.type === "approve" ? "Approved" : "Rejected",
+          description:
             dialog.type === "approve"
-              ? handleApprove(dialog.id, dialog.name)
-              : handleReject(dialog.id, dialog.name)
-          }
-        />
-      )}
+              ? `${dialog.name} approved successfully`
+              : `${dialog.name} rejected successfully`
+        })
+        reload()
+      }
+    }}
+  />
+)}
     </div>
   );
 }

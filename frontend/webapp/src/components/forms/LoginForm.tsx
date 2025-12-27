@@ -58,8 +58,15 @@ export default function LoginForm() {
     const roles=await login(form.email, form.password);
     if(roles)
     {
-      const isAdmin = roles.includes("Admin");
-      router.push("/admin/dashboard");
+      const isAdmin = Array.isArray(roles) && roles.length > 0 && roles.includes("Admin");
+      if(isAdmin)
+      {
+           router.push("/admin/dashboard");
+      }
+      else
+      {
+           router.push("/user/dashboard");
+      }
     }
   }
   return (

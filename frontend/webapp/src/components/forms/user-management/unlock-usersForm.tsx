@@ -28,18 +28,17 @@ export default function UnlockUsersPage() {
         }
         setErrorMsg("");
         setSuccessMsg("");
-        // api.assingRoles(
-        //     selectedUserId,
-        //     selectedRoles.map(r => r.id),
-        // )
-        // .then(() => {
-        //     setSuccessMsg("User unlocked successfully!");
-        //     setSelectedUserId("");
-        //     setSelectedUserName("");
-        // })
-        // .catch(err => {
-        //         setErrorMsg(err?.message || "Failed to unlock");
-        // });
+        api.unlockUser(
+            selectedUserId,
+        )
+        .then(() => {
+            setSuccessMsg("User unlocked successfully!");
+            setSelectedUserId("");
+            setSelectedUserName("");
+        })
+        .catch(err => {
+                setErrorMsg(err?.message || "Failed to unlock");
+        });
      }
     /* ===================== AUTO CLEAR ALERT ===================== */
     useEffect(() => {
