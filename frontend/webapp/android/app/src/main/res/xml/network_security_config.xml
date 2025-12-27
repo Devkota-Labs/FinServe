@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+
+	<!-- Allow HTTP for DEV testing only -->
+	<domain-config cleartextTrafficPermitted="true">
+		<domain includeSubdomains="true">54.81.12.127</domain>
+	</domain-config>
+
+</network-security-config>
