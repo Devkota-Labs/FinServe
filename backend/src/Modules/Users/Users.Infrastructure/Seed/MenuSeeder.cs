@@ -14,8 +14,8 @@ internal static class MenuSeeder
             new Menu { Id = 2, Name = "Masters", Route = "#", ParentId = null, Sequence = 2, CreatedBy = "Admin" },
             new Menu { Id = 3, Name = "Users", Route = "#", ParentId = null, Sequence = 3, CreatedBy = "Admin" },
             //Profile Menus
-            new Menu { Id = 9, Name = "View Profile", Route = "/admin/dashboard/masters/menus", ParentId = 1, Sequence = 1, CreatedBy = "Admin" },
-            new Menu { Id = 10, Name = "Change Password", Route = "/admin/dashboard/masters/menus", ParentId = 1, Sequence = 2, CreatedBy = "Admin" },
+            new Menu { Id = 9, Name = "View Profile", Route = "/profile", ParentId = 1, Sequence = 1, CreatedBy = "Admin" },
+            new Menu { Id = 10, Name = "Change Password", Route = "/auth/change-password", ParentId = 1, Sequence = 2, CreatedBy = "Admin" },
             //Master Menus
             new Menu { Id = 4, Name = "Countries", Route = "/admin/masters/countries", ParentId = 2, Sequence = 1, CreatedBy = "Admin" },
             new Menu { Id = 5, Name = "States", Route = "/admin/masters/states", ParentId = 2, Sequence = 2, CreatedBy = "Admin" },
