@@ -11,6 +11,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<ILookupProvider, EnumLookupProvider>();
         services.AddSingleton<GenderLookup>();
+        services.AddSingleton<AddressTypeLookup>();
 
         return services;
     }

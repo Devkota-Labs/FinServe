@@ -13,6 +13,8 @@
     <ProjectReference Include="..\Modules\Admin\Admin.Api\Admin.Api.csproj" />    
     <ProjectReference Include="..\Modules\Admin\Admin.Infrastructure\Admin.Infrastructure.csproj" />    
     <ProjectReference Include="..\Modules\Lookup\Lookup.Api\Lookup.Api.csproj" />    
+    <ProjectReference Include="..\Modules\Notification\Notification.Api\Notification.Api.csproj" />    
+    <ProjectReference Include="..\Modules\Notification\Notification.Infrastructure\Notification.Infrastructure.csproj" />    
     <ProjectReference Include="..\Shared\Shared.Common\Shared.Common.csproj" />
     <ProjectReference Include="..\Shared\Shared.Logging\Shared.Logging.csproj" />
     <ProjectReference Include="..\Shared\Shared.Security\Shared.Security.csproj" />

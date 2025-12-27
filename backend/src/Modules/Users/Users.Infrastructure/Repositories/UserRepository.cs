@@ -11,7 +11,7 @@ internal sealed class UserRepository(UserDbContext db) : IUserRepository
     {
         return await db.Users.AnyAsync(x => x.Id == id, cancellationToken).ConfigureAwait(false);
     }
-    
+
     public async Task<List<User>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await db.Users
@@ -45,7 +45,7 @@ internal sealed class UserRepository(UserDbContext db) : IUserRepository
             .AsNoTracking()
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(x => x.Email == email,cancellationToken).ConfigureAwait(false);
+            .FirstOrDefaultAsync(x => x.Email == email, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<User?> GetByMobileAsync(string mobile, CancellationToken cancellationToken = default)
@@ -54,7 +54,7 @@ internal sealed class UserRepository(UserDbContext db) : IUserRepository
             .AsNoTracking()
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(x => x.Mobile == mobile,cancellationToken).ConfigureAwait(false);
+            .FirstOrDefaultAsync(x => x.Mobile == mobile, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<User?> GetByUserNameOrEmailAsync(string userNameOrEmail, CancellationToken cancellationToken = default)
@@ -79,6 +79,32 @@ internal sealed class UserRepository(UserDbContext db) : IUserRepository
     public async Task DeleteAsync(User user, CancellationToken cancellationToken = default)
     {
         db.Users.Remove(user);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<UserAddress?> GetAddressByIdAsync(int userId, int addressId, CancellationToken cancellationToken = default)
+    {
+        return await db.UserAddresses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == addressId && x.UserId == userId, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<ICollection<UserAddress>> GetAddressAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        return await db.UserAddresses
+            .AsNoTracking()
+            .Where(x => x.UserId == userId)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task DeleteAddressAsync(UserAddress userAddress, CancellationToken cancellationToken = default)
+    {
+        db.UserAddresses.Remove(userAddress);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 }

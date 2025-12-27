@@ -1,79 +1,93 @@
 ﻿using Auth.Application.Dtos;
 using Auth.Application.Interfaces.Repositories;
 using Auth.Application.Interfaces.Services;
+using Auth.Application.Options;
 using Auth.Domain.Entities;
 using Lookup.Application.Lookups;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Notification.Domain.Enums;
+using Notification.Domain.Events;
 using Serilog;
 using Shared.Application.Interfaces.Services;
 using Shared.Application.Results;
 using Shared.Common;
 using Shared.Common.Services;
 using Shared.Common.Utils;
+using Shared.Infrastructure.Background;
 using Shared.Infrastructure.Options;
 using Shared.Security;
+using Shared.Security.Configurations;
 using Users.Application.Dtos.User;
 using Users.Application.Interfaces.Services;
 
 namespace Auth.Application.Services;
 
-internal sealed class AuthService(ILogger logger, 
-    IConfiguration configuration, 
-    IUserReadService usersRead, 
-    IUserWriteService usersWrite, 
-    IPasswordHasher passwordHasher, 
+internal sealed class AuthService(
+    ILogger logger,
+    IUserReadService usersRead,
+    IUserWriteService usersWrite,
+    IPasswordHasher passwordHasher,
     IPasswordPolicyService passwordPolicyService,
-    IPasswordHistoryService passwordHistoryService, 
-    IEmailService emailService, 
-    IEmailTemplateRenderer emailTemplateRenderer,
+    IPasswordHistoryService passwordHistoryService,
     IOptions<TokenOptions> tokenOptions,
     IOptions<OtpOptions> otpOptions,
-    ISmsSender? smsSender, 
-    IOtpGenerator otpGenerator, 
-    IOtpRepository otpRepository, 
-    IRefreshTokenRepository refreshTokens, 
+    ISmsSender? smsSender,
+    IOtpGenerator otpGenerator,
+    IOtpRepository otpRepository,
+    IRefreshTokenRepository refreshTokens,
     IAppUrlProvider appUrlProvider,
     IMfaService mfaService,
     IJwtTokenGenerator jwtTokenGenerator,
     IRefreshTokenService refreshTokenService,
     IMenuReadService menuReadService,
     IHttpContextAccessor httpContextAccessor,
-    ILoginHistoryService loginHistoryService
+    ILoginHistoryService loginHistoryService,
+    IOptions<SecurityOptions> securityOptions,
+    IOptions<AdminOptions> adminOptions,
+    IOptions<ApiOptions> apiOptions,
+    IOptions<FrontendOptions> frontendOption,
+    IDeviceResolver deviceResolver,
+    ILoginRiskService loginRiskService,
+    IBackgroundEventQ eventQueue
     )
-    : BaseService(logger.ForContext<AuthService>(), null), IAuthService
+    : BaseService(logger.ForContext<AuthService>(), null)
+    , IAuthService
 {
     private readonly TokenOptions _tokenOptions = tokenOptions.Value;
     private readonly OtpOptions _otpOptions = otpOptions.Value;
+    private readonly SecurityOptions _securityOptions = securityOptions.Value;
+    private readonly AdminOptions _adminOptions = adminOptions.Value;
+    private readonly ApiOptions _apiOptions = apiOptions.Value;
+    private readonly FrontendOptions _frontendOptions = frontendOption.Value;
 
     // ======================================================
     // 1. Register
     // ======================================================
-    public async Task<Result<RegisterResponseDto>> RegisterAsync(RegisterRequestDto dto, CancellationToken cancellationToken)
+    public async Task<Result> RegisterAsync(RegisterRequestDto dto, CancellationToken cancellationToken)
     {
         // uniqueness checks
         if (await usersRead.EmailExistsAsync(dto.Email, cancellationToken).ConfigureAwait(false))
-            return Result.Fail<RegisterResponseDto>("Email already exists.");
+            return Result.Fail("Email already exists.");
 
         if (await usersRead.MobileExistsAsync(dto.Mobile, cancellationToken).ConfigureAwait(false))
-            return Result.Fail<RegisterResponseDto>("Mobile already exists.");
+            return Result.Fail("Mobile already exists.");
 
         if (await usersRead.UserNameExistsAsync(dto.UserName, cancellationToken).ConfigureAwait(false))
-            return Result.Fail<RegisterResponseDto>("User Name already exists.");
+            return Result.Fail("User Name already exists.");
 
         var (valid, message) = passwordPolicyService.ValidatePassword(dto.Password);
         if (!valid)
-            return Result.Fail<RegisterResponseDto>(message);
+            return Result.Fail(message);
 
         var passwordHash = passwordHasher.Hash(dto.Password);
-        
+
         if (!GenderLookup.TryFromCode(dto.Gender, out var gender))
         {
-            return Result.Fail<RegisterResponseDto>("Invalid gender");
+            return Result.Fail("Invalid gender");
         }
 
-        var createUserDto = new CreateUserDto(dto.UserName, dto.Email, dto.Mobile, gender, dto.DateOfBirth, dto.FirstName, dto.MiddleName, dto.LastName, dto.CountryId, dto.CityId, dto.StateId, dto.Address, dto.PinCode, passwordHash);
+        var createUserDto = new CreateUserDto(dto.UserName, dto.Email, dto.Mobile, gender, dto.DateOfBirth, dto.FirstName, dto.MiddleName, dto.LastName, dto.Addresses, passwordHash);
 
         var authUserDto = await usersWrite.CreateUserAsync(createUserDto, cancellationToken).ConfigureAwait(false);
 
@@ -86,54 +100,29 @@ internal sealed class AuthService(ILogger logger,
         if (emailSendResult.Success)
         {
             Logger.Information("Verification email sent to {Email}", dto.Email);
-            //return new ApiResponse<string>(HttpStatusCode.OK, $"Verification email sent to {dto.Email}");
         }
         else
         {
             Logger.Warning("Failed to send verification email to {Email}", dto.Email);
 
-            return Result.Fail<RegisterResponseDto>($"Failed to send verification email to {dto.Email}");
+            return Result.Fail($"Failed to send verification email to {dto.Email}");
         }
 
-        var adminEmail = configuration["AppConfig:Admin:NotificationEmail"];
+        var notificationEmailResult = await SendApprovalMailAsync(authUserDto.Id, cancellationToken).ConfigureAwait(false);
 
-        if (!string.IsNullOrEmpty(adminEmail))
+        if (notificationEmailResult.Success)
         {
-            var baseUrl = appUrlProvider.GetBaseUrl();
-
-            var verificationVersion = configuration.GetValue("AppConfig:Api:ApprovedUserVerificationVersion", "1");
-
-            string verificationUrl = $"{baseUrl}api/v{verificationVersion}/auth/verify-email?email={Uri.EscapeDataString(authUserDto.Email)}";
-
-            var html = emailTemplateRenderer.Render(
-            "AdminUserApproval.html",
-            new
-            {
-                UserName = authUserDto.FullName,
-                UserEmail = authUserDto.Email,
-                ApproveLink = verificationUrl,
-            });
-
-            await emailService.SendAsync(adminEmail, "New user approval required", html, cancellationToken: cancellationToken).ConfigureAwait(false);
+            Logger.Information("Verification email sent to {Email}", dto.Email);
+        }
+        else
+        {
+            Logger.Warning("Failed to send notification email to admin for user {Email}", dto.Email);
         }
 
         // Optional: send mobile OTP
         // await SendOtpAsync(new SendOtpDto { MobileNo = dto.MobileNo, Channel = OtpChannel.Mobile, Purpose = OtpPurpose.MobileVerification }, cancellationtoken);
 
-        //return new RegisterResponseDto
-        //{
-        //    UserId = userId,
-        //    UserName = dto.UserName,
-        //    Email = dto.Email,
-        //    MobileNo = dto.MobileNo,
-        //    EmailVerificationRequired = true,
-        //    MobileVerificationRequired = false
-        //};
-
-        var registerResponseDto = new RegisterResponseDto(authUserDto.UserName, dto.Email, dto.Mobile, dto.Gender, dto.DateOfBirth, dto.FirstName, dto.MiddleName, dto.LastName,
-            dto.CountryId, dto.CityId, dto.StateId, dto.Address, dto.PinCode);
-
-        return Result.Ok("Registered. Verify email & mobile and wait for admin approval.", registerResponseDto);
+        return Result.Ok("Registered. Verify email & mobile and wait for admin approval.");
     }
 
     // ======================================================
@@ -151,11 +140,23 @@ internal sealed class AuthService(ILogger logger,
         if (otp is null || !otp.IsActive)
             return Result.Fail("Invalid or expired code.");
 
-        otp.ConsumedAt = DateTime.UtcNow;
+        otp.ConsumedAt = DateTimeUtil.Now;
 
         await otpRepository.UpdateAsync(otp, cancellationToken).ConfigureAwait(false);
 
         await usersWrite.MarkEmailVerifiedAsync(user.Id, cancellationToken).ConfigureAwait(false);
+
+        //Publish notification
+        await eventQueue.EnqueueAsync(
+            new NotificationEvent(
+                NotificationType.EmailVerified,
+                user.Id,
+                new Dictionary<string, object?>
+                {
+                    ["UserName"] = user.UserName,
+                    ["Email"] = user.Email,
+                }),
+            cancellationToken).ConfigureAwait(false);
 
         return Result.Ok("Email verified successfully.");
     }
@@ -178,8 +179,8 @@ internal sealed class AuthService(ILogger logger,
             UserId = user.Id,
             Purpose = OtpPurpose.EmailVerification,
             Token = otpGenerator.GenerateSecureToken(),
-            CreatedAt = DateTime.UtcNow,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(_tokenOptions.EmailVerificationExpiryMinutes),
+            CreatedAt = DateTimeUtil.Now,
+            ExpiresAt = DateTimeUtil.Now.AddMinutes(_tokenOptions.EmailVerificationExpiryMinutes),
 
         };
 
@@ -187,22 +188,20 @@ internal sealed class AuthService(ILogger logger,
 
         var baseUrl = appUrlProvider.GetBaseUrl();
 
-        var emailVerificationVersion = configuration.GetValue("AppConfig:Api:EmailVerificationVersion", "1");
+        string verificationUrl = $"{baseUrl}api/v{_apiOptions.EmailVerificationVersion}/auth/verify-email?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(emailVerification.Token)}";
 
-        string verificationUrl = $"{baseUrl}api/v{emailVerificationVersion}/auth/verify-email?email={Uri.EscapeDataString(user.Email)}&token={emailVerification.Token}";
-
-        var html = emailTemplateRenderer.Render(
-            "EmailVerification.html",
-            new
-            {
-                AppName = "FinServe",
-                Year = DateTime.UtcNow.Year,
-                UserName = user.UserName,
-                VerificationLink = verificationUrl,
-                ExpiryTimeInHours = TimeSpan.FromMinutes(_tokenOptions.EmailVerificationExpiryMinutes).TotalHours,
-            });
-
-        await emailService.SendAsync(user.Email, "Verify your email", html, cancellationToken: cancellationToken).ConfigureAwait(false);
+        //Publish notification
+        await eventQueue.EnqueueAsync(
+            new NotificationEvent(
+                NotificationType.EmailVerificationRequested,
+                user.Id,
+                new Dictionary<string, object?>
+                {
+                    ["UserName"] = user.UserName,
+                    ["VerificationLink"] = new Uri(verificationUrl),
+                    ["ExpiryTimeInHours"] = (int)TimeSpan.FromMinutes(_tokenOptions.EmailVerificationExpiryMinutes).TotalHours,
+                }),
+            cancellationToken).ConfigureAwait(false);
 
         return Result.Ok("Email sent successfully.");
     }
@@ -212,15 +211,50 @@ internal sealed class AuthService(ILogger logger,
     // ======================================================
     public async Task<Result> UpdateEmailAsync(int userId, UpdateEmailDto dto, CancellationToken cancellationToken)
     {
+        var user = await usersRead.GetByIdAsync(userId, cancellationToken).ConfigureAwait(false);
+
+        if (user is null)
+            return Result.Fail("User not found.");
+
         if (await usersRead.EmailExistsAsync(dto.NewEmail, cancellationToken).ConfigureAwait(false))
         {
             return Result.Fail("Email already exists.");
         }
 
+        var oldEmail = user.Email;
+
         await usersWrite.UpdateEmailAsync(userId, dto.NewEmail, cancellationToken).ConfigureAwait(false);
+
+        //Publish notification
+        await eventQueue.EnqueueAsync(
+            new NotificationEvent(
+                NotificationType.EmailChanged,
+                user.Id,
+                new Dictionary<string, object?>
+                {
+                    ["UserName"] = user.UserName,
+                    ["OldEmail"] = oldEmail,
+                    ["NewEmail"] = dto.NewEmail,
+                }),
+            cancellationToken).ConfigureAwait(false);
 
         // Send new verification code
         var emailSendResult = await SendVerificationMailAsync(userId, cancellationToken).ConfigureAwait(false);
+
+        //Publish notification to old email about change
+        await eventQueue.EnqueueAsync(
+            new NotificationEvent(
+                NotificationType.EmailChangedSecurityAlert,
+                user.Id,
+                null,
+                oldEmail,
+                new Dictionary<string, object?>
+                {
+                    ["UserName"] = user.UserName,
+                    ["OldEmail"] = oldEmail,
+                    ["NewEmail"] = dto.NewEmail,
+                }),
+            cancellationToken).ConfigureAwait(false);
 
         if (emailSendResult.Success)
         {
@@ -272,17 +306,18 @@ internal sealed class AuthService(ILogger logger,
 
         if (_otpOptions.Channel == OtpChannel.Email)
         {
-            var html = emailTemplateRenderer.Render(
-                "OtpEmail.html",
-                new
-                {
-                    UserName = user.FullName,
-                    Otp = otp,
-                    ExpiryMinutes = _otpOptions.ExpiryMinutes
-                });
-
-
-            await emailService.SendAsync(user.Email, "Your Verification Code", html, cancellationToken: cancellationToken).ConfigureAwait(false);
+            //Publish notification
+            await eventQueue.EnqueueAsync(
+                new NotificationEvent(
+                    NotificationType.SendOtp,
+                    user.Id,
+                    new Dictionary<string, object?>
+                    {
+                        ["UserName"] = user.UserName,
+                        ["Token"] = otp.Token,
+                        ["ExpiryMinutes"] = _otpOptions.ExpiryMinutes,
+                    }),
+                cancellationToken).ConfigureAwait(false);
         }
         else if (_otpOptions.Channel == OtpChannel.Mobile && smsSender != null)
         {
@@ -307,7 +342,7 @@ internal sealed class AuthService(ILogger logger,
         if (otp is null || !otp.IsActive)
             return Result.Fail("Invalid or expired OTP.");
 
-        otp.ConsumedAt = DateTime.UtcNow;
+        otp.ConsumedAt = DateTimeUtil.Now;
 
         await otpRepository.UpdateAsync(otp, cancellationToken).ConfigureAwait(false);
 
@@ -334,35 +369,35 @@ internal sealed class AuthService(ILogger logger,
     // ======================================================
     // 8. Login
     // ======================================================
-    public async Task<Result<LoginResponseDto>> LoginAsync(LoginDto dto, string ip, CancellationToken cancellationToken)
+    public async Task<(string? RefreshToken, Result<LoginResponseDto>)> LoginAsync(LoginDto dto, CancellationToken cancellationToken)
     {
         var user = await usersRead.GetByUserNameOrEmailAsync(dto.Email, cancellationToken).ConfigureAwait(false);
 
         if (user is null)
-            return Result.Fail<LoginResponseDto>("User not found.");
+            return (null, Result.Fail<LoginResponseDto>("User not found."));
 
-        var responseDto = new LoginResponseUserDto(user.Id, user.FullName, user.Email, user.IsEmailVerified, user.IsMobileVerified, user.ProfileImageUrl,
-        user.Roles, await menuReadService.GetUserMenusAsync(user.Id, cancellationToken).ConfigureAwait(false));
+        var responseDto = new LoginResponseUserDto(user.Id, user.FullName, user.Email, user.IsEmailVerified, user.IsMobileVerified, user.ProfileImageUrl, user.Roles,
+        await menuReadService.GetUserMenusAsync(user.Id, cancellationToken).ConfigureAwait(false));
 
         var loginResponseDto = new LoginResponseDto(responseDto);
 
         if (!user.IsEmailVerified)
-            return Result.Fail("Email must be verified.", loginResponseDto);
+            return (null, Result.Fail("Email must be verified.", loginResponseDto));
 
         if (!user.IsMobileVerified)
-            return Result.Fail("Mobile must be verified.", loginResponseDto);
+            return (null, Result.Fail("Mobile must be verified.", loginResponseDto));
 
         if (!user.IsApproved)
-            return Result.Fail("User not approved.", loginResponseDto);
+            return (null, Result.Fail("User not approved.", loginResponseDto));
 
-        if (user.LockoutEndAt.HasValue && user.LockoutEndAt.Value > DateTime.UtcNow)
-            return Result.Fail<LoginResponseDto>($"Account locked, your account will be unlocked at {user.LockoutEndAt}.");
+        if (user.LockoutEndAt.HasValue && user.LockoutEndAt.Value > DateTimeUtil.Now)
+            return (null, Result.Fail<LoginResponseDto>($"Account locked, your account will be unlocked at {user.LockoutEndAt}."));
 
         if (!passwordHasher.Verify(user.PasswordHash, dto.Password))
         {
             await usersWrite.MarkFailedLogin(user.Id, cancellationToken).ConfigureAwait(false);
 
-            return Result.Fail<LoginResponseDto>("Invalid credentials.");
+            return (null, Result.Fail<LoginResponseDto>("Invalid credentials."));
         }
 
         await usersWrite.MarkSuccessLogin(user.Id, cancellationToken).ConfigureAwait(false);
@@ -370,37 +405,78 @@ internal sealed class AuthService(ILogger logger,
         if (user.MfaEnabled)
         {
             if (string.IsNullOrEmpty(dto.TotpCode) || !mfaService.ValidateTotp(user.MfaSecret ?? string.Empty, dto.TotpCode))
-                return Result.Fail<LoginResponseDto>("MFA required/invalid");
+                return (null, Result.Fail<LoginResponseDto>("MFA required/invalid"));
         }
 
         var accessToken = jwtTokenGenerator.GenerateToken(user.Id, user.FullName, user.Email, user.Roles);
 
-        var refresh = await refreshTokenService.CreateRefreshTokenAsync(user.Id, ip, (int)new TimeSpan(30, 0, 0, 0, 0, 0).TotalMinutes, cancellationToken).ConfigureAwait(false);
+        var deviceInfo = deviceResolver.Resolve(httpContextAccessor.HttpContext);
+
+        var refresh = await refreshTokenService.CreateRefreshTokenAsync(user.Id, deviceInfo.IpAddress, (int)new TimeSpan(30, 0, 0, 0, 0, 0).TotalMinutes, cancellationToken).ConfigureAwait(false);
 
         await loginHistoryService.LoginAsync(user.Id, refresh.Id, true, null, httpContextAccessor.HttpContext, cancellationToken).ConfigureAwait(false);
 
         loginResponseDto.AccessToken = accessToken;
-        loginResponseDto.RefreshToken = refresh.Token;        
+        loginResponseDto.RefreshToken = refresh.Token;
 
-        return Result.Ok("Login successful.", loginResponseDto);
+        //Publish LoginAlert notification
+        await eventQueue.EnqueueAsync(
+            new NotificationEvent(
+                NotificationType.LoginAlert,
+                user.Id,
+                deviceInfo.Device,
+                null,
+                new Dictionary<string, object?>
+                {
+                    ["UserName"] = user.UserName,
+                    ["IpAddress"] = deviceInfo.IpAddress,
+                    ["UserAgent"] = deviceInfo.UserAgent,
+                    ["Device"] = deviceInfo.Device,
+                    ["LoginTime"] = DateTimeUtil.Now.ToString("f", Constants.IFormatProvider)
+                }),
+            cancellationToken).ConfigureAwait(false);
+
+        var isSuspicious = await loginRiskService.IsSuspiciousAsync(user.Id, deviceInfo.IpAddress, deviceInfo.UserAgent, cancellationToken).ConfigureAwait(false);
+
+        //Publish SuspiciousLoginAlert notification
+        if (isSuspicious)
+        {
+            await eventQueue.EnqueueAsync(
+           new NotificationEvent(
+               NotificationType.SuspiciousLoginAlert,
+               user.Id,
+               deviceInfo.Device,
+               null,
+               new Dictionary<string, object?>
+               {
+                   ["UserName"] = user.UserName,
+                   ["IpAddress"] = deviceInfo.IpAddress,
+                   ["UserAgent"] = deviceInfo.UserAgent,
+                   ["Device"] = deviceInfo.Device,
+                   ["LoginTime"] = DateTimeUtil.Now.ToString("f", Constants.IFormatProvider)
+               }),
+           cancellationToken).ConfigureAwait(false);
+        }
+
+        return (refresh.Token, Result.Ok("Login successful.", loginResponseDto));
     }
 
     // ======================================================
     // 9. Refresh
     // ======================================================
-    public async Task<Result<LoginResponseDto>> RefreshAsync(string token, string ip, CancellationToken cancellationToken)
+    public async Task<(string? RefreshToken, Result<string>)> RefreshAsync(string token, string ip, CancellationToken cancellationToken)
     {
         var refreshToken = await refreshTokenService.GetValidRefreshTokenAsync(token, cancellationToken).ConfigureAwait(false);
 
         if (refreshToken is null || !refreshToken.IsActive)
-            return Result.Fail<LoginResponseDto>("Invalid refresh token.");
+            return (null, Result.Fail<string>("Invalid refresh token."));
 
         var user = await usersRead.GetByIdAsync(refreshToken.UserId, cancellationToken).ConfigureAwait(false);
         if (user is null)
-            return Result.Fail<LoginResponseDto>("User not found.");
+            return (null, Result.Fail<string>("User not found."));
 
         // rotate token
-        refreshToken.RevokedAt = DateTime.UtcNow;
+        refreshToken.RevokedAt = DateTimeUtil.Now;
         refreshToken.RevokedByIp = ip;
         refreshToken.ReasonRevoked = "Token rotation";
 
@@ -415,17 +491,13 @@ internal sealed class AuthService(ILogger logger,
         {
             UserId = user.Id,
             Token = newRefresh.Token,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = DateTimeUtil.Now,
             CreatedByIp = ip,
             ExpiresAt = newRefresh.ExpiresAt,
             IsUsed = false,
         }, cancellationToken).ConfigureAwait(false);
 
-
-        var responseDto = new LoginResponseUserDto(user.Id, user.FullName, user.Email, user.IsEmailVerified, user.IsMobileVerified, user.ProfileImageUrl,
-        user.Roles, await menuReadService.GetUserMenusAsync(user.Id, cancellationToken).ConfigureAwait(false));
-
-        return Result.Ok("", new LoginResponseDto(responseDto) { AccessToken = accessToken, RefreshToken = newRefresh.Token });
+        return (newRefresh.Token, Result.Ok("", accessToken));
     }
 
     // ======================================================
@@ -437,7 +509,7 @@ internal sealed class AuthService(ILogger logger,
         if (rt is null || rt.IsRevoked)
             return Result.Ok();
 
-        rt.RevokedAt = DateTime.UtcNow;
+        rt.RevokedAt = DateTimeUtil.Now;
         rt.RevokedByIp = ip;
         rt.ReasonRevoked = "User logout";
 
@@ -462,28 +534,26 @@ internal sealed class AuthService(ILogger logger,
             UserId = user.Id,
             Purpose = OtpPurpose.PasswordReset,
             Token = otpGenerator.GenerateSecureToken(),
-            CreatedAt = DateTime.UtcNow,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(_tokenOptions.PasswordResetExpiryMinutes),
+            CreatedAt = DateTimeUtil.Now,
+            ExpiresAt = DateTimeUtil.Now.AddMinutes(_tokenOptions.PasswordResetExpiryMinutes),
         };
 
-        var baseUrl = appUrlProvider.GetBaseUrl();
+        await otpRepository.AddAsync(passwordRest, cancellationToken).ConfigureAwait(false);
 
-        var verificationVersion = configuration.GetValue("AppConfig:Api:PasswordResetVerificationVersion", "1");
+        var resetPasswordUrl = $"{_frontendOptions.BaseUrl}auth/reset-password?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(passwordRest.Token)}";
 
-        string verificationUrl = $"{baseUrl}api/v{verificationVersion}/auth/verify-reset-password?email={Uri.EscapeDataString(user.Email)}&token={passwordRest.Token}";
-
-        var html = emailTemplateRenderer.Render(
-            "PasswordReset.html",
-            new
-            {
-                AppName = "FinServe",
-                Year = DateTime.UtcNow.Year,
-                UserName = user.UserName,
-                ResetLink = verificationUrl,
-                ExpiryTimeInMinutes = _tokenOptions.PasswordResetExpiryMinutes,
-            });
-
-        await emailService.SendAsync(user.Email, "Reset your password", html, cancellationToken: cancellationToken).ConfigureAwait(false);
+        //Publish notification
+        await eventQueue.EnqueueAsync(
+          new NotificationEvent(
+              NotificationType.PasswordResetRequested,
+              user.Id,
+              new Dictionary<string, object?>
+              {
+                  ["UserName"] = user.UserName,
+                  ["ResetLink"] = new Uri(resetPasswordUrl),
+                  ["ExpiryTimeInMinutes"] = (int)TimeSpan.FromMinutes(_tokenOptions.PasswordResetExpiryMinutes).TotalMinutes,
+              }),
+          cancellationToken).ConfigureAwait(false);
 
         return Result.Ok("If account exists, a reset link has been sent.");
     }
@@ -501,7 +571,7 @@ internal sealed class AuthService(ILogger logger,
         if (otp is null || !otp.IsActive)
             return Result.Fail("Invalid or expired reset token.");
 
-        otp.ConsumedAt = DateTime.UtcNow;
+        otp.ConsumedAt = DateTimeUtil.Now;
         await otpRepository.UpdateAsync(otp, cancellationToken).ConfigureAwait(false);
 
         var (valid, message) = passwordPolicyService.ValidatePassword(dto.NewPassword);
@@ -510,9 +580,7 @@ internal sealed class AuthService(ILogger logger,
 
         var newHash = passwordHasher.Hash(dto.NewPassword);
 
-        var lastN = configuration.GetValue("Security:PasswordHistoryCount", 5);
-
-        if (await passwordHistoryService.HasUsedPasswordBeforeAsync(user.Id, newHash, lastN, cancellationToken).ConfigureAwait(false))
+        if (await passwordHistoryService.HasUsedPasswordBeforeAsync(user.Id, newHash, _securityOptions.PasswordHistoryCount, cancellationToken).ConfigureAwait(false))
             return Result.Fail("You cannot reuse any of your last passwords.");
 
         await usersWrite.SetPasswordHashAsync(user.Id, newHash, cancellationToken).ConfigureAwait(false);
@@ -520,15 +588,17 @@ internal sealed class AuthService(ILogger logger,
         //Adding password history
         await passwordHistoryService.SaveAsync(user.Id, newHash, cancellationToken).ConfigureAwait(false);
 
-        var html = emailTemplateRenderer.Render(
-            "PasswordResetSuccess.html",
-            new
-            {
-                UserName = user.UserName,
-                Timestamp = DateTimeUtil.Now.ToString("f", Constants.IFormatProvider)
-            });
-
-        await emailService.SendAsync(user.Email, "Your password has been reset", html, cancellationToken: cancellationToken).ConfigureAwait(false);
+        //Publish notification
+        await eventQueue.EnqueueAsync(
+          new NotificationEvent(
+              NotificationType.PasswordResetSuccess,
+              user.Id,
+              new Dictionary<string, object?>
+              {
+                  ["UserName"] = user.UserName,
+                  ["Timestamp"] = DateTimeUtil.Now.ToString("f", Constants.IFormatProvider),
+              }),
+          cancellationToken).ConfigureAwait(false);
 
         return Result.Ok("Password reset successful.");
     }
@@ -551,9 +621,7 @@ internal sealed class AuthService(ILogger logger,
 
         var newHash = passwordHasher.Hash(dto.NewPassword);
 
-        var lastN = configuration.GetValue("Security:PasswordHistoryCount", 5);
-
-        if (await passwordHistoryService.HasUsedPasswordBeforeAsync(user.Id, newHash, lastN, cancellationToken).ConfigureAwait(false))
+        if (await passwordHistoryService.HasUsedPasswordBeforeAsync(user.Id, newHash, _securityOptions.PasswordHistoryCount, cancellationToken).ConfigureAwait(false))
             return Result.Fail("You cannot reuse any of your last passwords.");
 
         await usersWrite.SetPasswordHashAsync(user.Id, newHash, cancellationToken).ConfigureAwait(false);
@@ -561,17 +629,57 @@ internal sealed class AuthService(ILogger logger,
         //Adding password history
         await passwordHistoryService.SaveAsync(user.Id, newHash, cancellationToken).ConfigureAwait(false);
 
-        var html = emailTemplateRenderer.Render(
-            "PasswordChanged.html",
-            new
-            {
-                UserName = user.UserName,
-                Timestamp = DateTimeUtil.Now.ToString("f", Constants.IFormatProvider)
-            });
-
-        await emailService.SendAsync(user.Email, "Your password was changed", html, cancellationToken: cancellationToken).ConfigureAwait(false);
+        //Publish notification
+        await eventQueue.EnqueueAsync(
+          new NotificationEvent(
+              NotificationType.PasswordChanged,
+              user.Id,
+              new Dictionary<string, object?>
+              {
+                  ["UserName"] = user.UserName,
+                  ["Timestamp"] = DateTimeUtil.Now.ToString("f", Constants.IFormatProvider),
+              }),
+          cancellationToken).ConfigureAwait(false);
 
         return Result.Ok("Password Changed successful.");
+    }
+
+    public async Task<Result> SendApprovalMailAsync(int userId, CancellationToken cancellationToken)
+    {
+        var user = await usersRead.GetByIdAsync(userId, cancellationToken).ConfigureAwait(false);
+
+        if (user is null)
+            return Result.Fail("User not found.");
+
+        if (user.IsApproved)
+            return Result.Fail("User already approved.");
+
+        if (!string.IsNullOrEmpty(_adminOptions.NotificationEmail))
+        {
+            var approveUserUrl = $"{_frontendOptions.BaseUrl}admin/user-management/approve-user";
+
+            //Publish notification
+            await eventQueue.EnqueueAsync(
+              new NotificationEvent(
+                  NotificationType.NewUserAdded,
+                  user.Id,
+                  null,
+                  _adminOptions.NotificationEmail,
+                  new Dictionary<string, object?>
+                  {
+                      ["UserName"] = user.UserName,
+                      ["FullName"] = user.FullName,
+                      ["Email"] = user.Email,
+                      ["ApproveLink"] = new Uri(approveUserUrl),
+                  }),
+              cancellationToken).ConfigureAwait(false);
+
+            return Result.Ok("Approval mail sent successfully.");
+        }
+        else
+        {
+            return Result.Fail("Failed to send approval mail due to Notification email address is not configured.");
+        }
     }
 
     // ======================================================
@@ -586,8 +694,8 @@ internal sealed class AuthService(ILogger logger,
             UserId = userId,
             Token = code,
             Purpose = purpose,
-            CreatedAt = DateTime.UtcNow,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes)
+            CreatedAt = DateTimeUtil.Now,
+            ExpiresAt = DateTimeUtil.Now.AddMinutes(expiryMinutes)
         };
     }
 }

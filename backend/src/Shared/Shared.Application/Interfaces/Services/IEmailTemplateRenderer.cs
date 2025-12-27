@@ -2,5 +2,5 @@
 
 public interface IEmailTemplateRenderer
 {
-    string Render(string templateName, object model);
+    string Render(string templateName, IDictionary<string, object?> model);
 }

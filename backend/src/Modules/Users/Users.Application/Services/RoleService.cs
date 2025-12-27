@@ -12,7 +12,7 @@ namespace Users.Application.Services;
 
 internal sealed class RoleService(ILogger logger, IRoleRepository repo)
     : BaseService(logger.ForContext<RoleService>(), null), IRoleService
-{   
+{
     public async Task<Result<ICollection<RoleDto>>> GetAllAsync(CancellationToken cancellationToken)
     {
         var entities = await repo.GetAllAsync(cancellationToken).ConfigureAwait(false);

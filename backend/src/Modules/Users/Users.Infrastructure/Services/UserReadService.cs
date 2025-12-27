@@ -2,6 +2,7 @@
 using Serilog;
 using Shared.Application.Dtos;
 using Shared.Common.Services;
+using Shared.Common.Utils;
 using System.Linq.Expressions;
 using Users.Application.Interfaces.Services;
 using Users.Domain.Entities;
@@ -9,10 +10,10 @@ using Users.Infrastructure.Db;
 
 namespace Users.Infrastructure.Services;
 
-internal sealed class UserReadService(ILogger logger, UserDbContext userDbContext) 
+internal sealed class UserReadService(ILogger logger, UserDbContext userDbContext)
     : BaseService(logger.ForContext<UserReadService>(), null), IUserReadService
 {
-    public async Task<AuthUserDto?> GetByIdAsync(int id, CancellationToken cancellationToken= default)
+    public async Task<AuthUserDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         => await userDbContext.Users
         .AsNoTracking()
         .Include(u => u.UserRoles)
@@ -21,7 +22,7 @@ internal sealed class UserReadService(ILogger logger, UserDbContext userDbContex
             .Select(ToAuthUser())
             .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
 
-    public async Task<AuthUserDto?> GetByEmailAsync(string email, CancellationToken cancellationToken= default)
+    public async Task<AuthUserDto?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
         => await userDbContext.Users
         .AsNoTracking()
             .Include(u => u.UserRoles)
@@ -30,7 +31,7 @@ internal sealed class UserReadService(ILogger logger, UserDbContext userDbContex
             .Select(ToAuthUser())
             .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
 
-    public async Task<AuthUserDto?> GetByMobileAsync(string mobile, CancellationToken cancellationToken= default)
+    public async Task<AuthUserDto?> GetByMobileAsync(string mobile, CancellationToken cancellationToken = default)
         => await userDbContext.Users
         .AsNoTracking()
             .Include(u => u.UserRoles)
@@ -39,7 +40,7 @@ internal sealed class UserReadService(ILogger logger, UserDbContext userDbContex
             .Select(ToAuthUser())
             .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
 
-    public async Task<AuthUserDto?> GetByUserNameOrEmailAsync(string input, CancellationToken cancellationToken= default)
+    public async Task<AuthUserDto?> GetByUserNameOrEmailAsync(string input, CancellationToken cancellationToken = default)
         => await userDbContext.Users
         .AsNoTracking()
             .Include(u => u.UserRoles)
@@ -48,13 +49,13 @@ internal sealed class UserReadService(ILogger logger, UserDbContext userDbContex
             .Select(ToAuthUser())
             .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
 
-    public async Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken= default)
+    public async Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken = default)
         => await userDbContext.Users.AnyAsync(x => x.Email == email, cancellationToken).ConfigureAwait(false);
 
-    public async Task<bool> MobileExistsAsync(string mobile, CancellationToken cancellationToken= default)
+    public async Task<bool> MobileExistsAsync(string mobile, CancellationToken cancellationToken = default)
         => await userDbContext.Users.AnyAsync(x => x.Mobile == mobile, cancellationToken).ConfigureAwait(false);
 
-    public async Task<bool> UserNameExistsAsync(string username, CancellationToken cancellationToken= default)
+    public async Task<bool> UserNameExistsAsync(string username, CancellationToken cancellationToken = default)
         => await userDbContext.Users.AnyAsync(x => x.UserName == username, cancellationToken).ConfigureAwait(false);
 
     /// <summary>
@@ -62,7 +63,7 @@ internal sealed class UserReadService(ILogger logger, UserDbContext userDbContex
     /// </summary>
     public async Task<IEnumerable<AuthUserDto>> GetUsersWithExpiringPasswordsAsync(TimeSpan within, CancellationToken cancellationToken = default)
     {
-        var now = DateTime.UtcNow;
+        var now = DateTimeUtil.Now;
         var reminderThreshold = now + within;
 
         return await userDbContext.Users
@@ -107,5 +108,5 @@ internal sealed class UserReadService(ILogger logger, UserDbContext userDbContex
         };
 
     private static Expression<Func<User, PendingUserDto>> ToPendingUser()
-        => x => new PendingUserDto(x.Id, x.UserName, x.FullName, x.Email,x.Mobile,x.IsApproved, x.EmailVerified, x.MobileVerified, x.IsActive, x.CreatedTime);
+        => x => new PendingUserDto(x.Id, x.UserName, x.FullName, x.Email, x.Mobile, x.IsApproved, x.EmailVerified, x.MobileVerified, x.IsActive, x.CreatedTime);
 }

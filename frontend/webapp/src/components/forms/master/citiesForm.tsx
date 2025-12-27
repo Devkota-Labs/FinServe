@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Search, FileSpreadsheet, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCities } from "@/hooks/master/useCities";
 import { exportToExcel } from "@/lib/exportExcel";
@@ -12,246 +13,324 @@ import TableSkeleton from "@/components/common/TableSkeleton";
 import SearchBar from "@/components/common/SearchBar";
 import Pagination from "@/components/common/Pagination";
 import SelectDialog from "@/components/common/SelectDialog";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { api } from "@/lib/api";
-import { Search, FileSpreadsheet, Plus } from "lucide-react";
 
 export default function CityPage() {
-    const { toast } = useToast();
-    const { cities, loading, reload } = useCities();
+  const { toast } = useToast();
+  const { cities, loading, reload } = useCities();
 
-    const [search, setSearch] = useState("");
-    const [page, setPage] = useState(1);
-    const PAGE_SIZE = 8;
+  /* UI */
+  const [showForm, setShowForm] = useState(false);
+  const [search, setSearch] = useState("");
 
-    const filtered = useMemo(
-        () => cities.filter((c) => c.name.toLowerCase().includes(search.toLowerCase())),
-        [cities, search]
-    );
+  /* Pagination */
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 8;
 
-    const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  /* Form fields */
+  const [cityName, setCityName] = useState("");
+  const [stateId, setStateId] = useState<number | null>(null);
+  const [stateName, setStateName] = useState("");
 
-    // FORM STATES
-    const [showForm, setShowForm] = useState(false);
-    const [name, setCityName] = useState("");
-    const [stateId, setStateId] = useState("");
-    const [selectedStateName, setSelectedStateName] = useState("");
+  /* Edit mode */
+  const [editId, setEditId] = useState<number | null>(null);
+  const [originalCity, setOriginalCity] = useState<any>(null);
 
-    const [stateModal, setStateModal] = useState(false);
+  /* Dialogs */
+  const [stateModal, setStateModal] = useState(false);
+  const [deleteDialog, setDeleteDialog] =
+    useState<{ id: number; name: string } | null>(null);
 
-    // ALERTS
-    const [errorMsg, setErrorMsg] = useState("");
-    const [successMsg, setSuccessMsg] = useState("");
+  /* Alerts */
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
 
-    function resetForm() {
-        setCityName("");
-        setStateId("");
-        setSelectedStateName("");
-    }
+  /* ---------- Helpers ---------- */
 
-    async function handleSubmit(e) {
-        e.preventDefault();
+  function resetForm() {
+    setCityName("");
+    setStateId(null);
+    setStateName("");
+    setEditId(null);
+    setOriginalCity(null);
+  }
 
-        setErrorMsg("");
-        setSuccessMsg("");
+  function handleEdit(city: any) {
+    setCityName(city.name);
+    setStateId(city.stateId);
+    setStateName(city.stateName);
 
-        api
-            .addCity({ name, stateId })
-            .then(() => {
-                setSuccessMsg("City added successfully!");
-                reload();
-                setShowForm(false);
-                resetForm();
-            })
-            .catch((err) => {
-                setErrorMsg(err.message || "Failed to add city");
-            });
-    }
+    setEditId(city.id);
+    setOriginalCity(city);
+    setShowForm(true);
+  }
 
-    // Auto-clear alert
-    useEffect(() => {
-        if (errorMsg || successMsg) {
-            const t = setTimeout(() => {
-                setErrorMsg("");
-                setSuccessMsg("");
-            }, 3000);
-            return () => clearTimeout(t);
+  function getChangedFields() {
+    if (!originalCity) return {};
+
+    const payload: any = {};
+
+    if (cityName !== originalCity.name)
+      payload.name = cityName;
+
+    if (stateId !== originalCity.stateId)
+      payload.stateId = stateId;
+
+    return payload;
+  }
+  /* ---------- Submit ---------- */
+  async function handleSubmit(e: any) {
+    e.preventDefault();
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    try {
+      let res;
+
+      if (editId) {
+        const payload = getChangedFields();
+
+        if (Object.keys(payload).length === 0) {
+          setErrorMsg("No changes detected");
+          return;
         }
-    }, [errorMsg, successMsg]);
 
-    return (
-        <div>
-            <Card className="w-full shadow-md border rounded-xl">
-                <CardHeader className="flex justify-between items-center">
-                    <CardTitle className="text-2xl">City Management</CardTitle>
-                </CardHeader>
+        res = await api.updateCity(editId, payload);
+      } else {
+        res = await api.addCity({
+          name: cityName,
+          stateId,
+        });
+      }
 
-                <CardContent>
-                    {errorMsg && <AppAlert type="error" message={errorMsg} />}
-                    {successMsg && <AppAlert type="success" message={successMsg} />}
+      if (res?.success) {
+        setSuccessMsg(
+          editId ? "City updated successfully!" : "City added successfully!"
+        );
+        reload();
+        resetForm();
+        setShowForm(false);
+      } else {
+        setErrorMsg(res?.message || "Operation failed");
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || "Operation failed");
+    }
+  }
 
-                    {/* TOP BAR */}
-                    {!showForm && (
-                        <div className="flex justify-between items-center mb-6">
-                            <SearchBar value={search} onChange={setSearch} placeholder="Search city..." />
+  /* ---------- Delete ---------- */
 
-                            <div className="flex gap-3">
-                                <Button
-                                    onClick={() => exportToExcel(cities, "Cities")}
-                                    className="bg-black hover:bg-gray-800 flex items-center gap-2"
-                                >
-                                    <FileSpreadsheet size={18} />
-                                    Export Excel
-                                </Button>
+  async function handleDeleteConfirm() {
+    if (!deleteDialog) return;
 
-                                <Button
-                                    onClick={() => setShowForm(true)}
-                                    className="bg-blue-600 text-white flex items-center gap-2"
-                                >
-                                    <Plus size={18} />
-                                    Add City
-                                </Button>
-                            </div>
-                        </div>
-                    )}
+    try {
+      await api.deleteCity(deleteDialog.id);
+      toast({
+        title: "Deleted",
+        description: `${deleteDialog.name} deleted successfully`,
+      });
+      reload();
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialog(null);
+    }
+  }
 
-                    {/* FORM SECTION */}
-                    {showForm && (
-                        <div className="mb-8 bg-gray-50 p-6 rounded-lg border">
-                            <h2 className="text-xl font-semibold mb-4">Add City</h2>
+  /* ---------- Auto-hide alerts ---------- */
 
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">City Name</label>
-                                    <Input value={name} onChange={(e) => setCityName(e.target.value)} required />
-                                </div>
+  useEffect(() => {
+    if (!errorMsg && !successMsg) return;
+    const t = setTimeout(() => {
+      setErrorMsg("");
+      setSuccessMsg("");
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [errorMsg, successMsg]);
 
-                                {/* Select State */}
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Select State</label>
+  /* ---------- Filter + Pagination ---------- */
 
-                                    <div className="relative">
-                                        <Input
-                                            value={selectedStateName}
-                                            readOnly
-                                            className="cursor-pointer pr-10"
-                                            placeholder="Select State"
-                                            onClick={() => setStateModal(true)}
-                                        />
+  const filtered = useMemo(
+    () =>
+      cities.filter(c =>
+        c.name.toLowerCase().includes(search.toLowerCase())
+      ),
+    [cities, search]
+  );
 
-                                        <Search
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 cursor-pointer hover:text-gray-800"
-                                            size={18}
-                                            onClick={() => setStateModal(true)}
-                                        />
-                                    </div>
-                                </div>
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
 
-                                <div className="flex justify-end gap-3">
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => {
-                                            resetForm();
-                                            setShowForm(false);
-                                        }}
-                                    >
-                                        Cancel
-                                    </Button>
+  /* ---------- UI ---------- */
 
-                                    <Button type="submit" className="bg-blue-600 text-white">
-                                        Save City
-                                    </Button>
-                                </div>
-                            </form>
-                        </div>
-                    )}
+  return (
+    <Card className="shadow-md rounded-xl">
+      <CardHeader className="flex justify-between items-center">
+        <CardTitle className="text-2xl">City Management</CardTitle>
+      </CardHeader>
 
-                    {/* TABLE */}
-                    {!showForm &&
-                        (loading ? (
-                            <TableSkeleton rows={5} />
-                        ) : (
-                            <div className="overflow-x-auto rounded-xl border shadow-sm bg-white">
-                                <table className="min-w-[800px] w-full">
-                                    <thead className="bg-gray-100">
-                                        <tr>
-                                            <th className="px-4 py-3 text-left">City</th>
-                                            <th className="px-4 py-3 text-left">Status</th>
-                                            <th className="px-4 py-3 text-right">Actions</th>
-                                        </tr>
-                                    </thead>
+      <CardContent>
+        {errorMsg && <AppAlert type="error" message={errorMsg} />}
+        {successMsg && <AppAlert type="success" message={successMsg} />}
 
-                                    <tbody>
-                                        {paginated.length === 0 && (
-                                            <tr>
-                                                <td colSpan={3} className="py-6 text-center text-gray-500 italic">
-                                                    No cities found
-                                                </td>
-                                            </tr>
-                                        )}
-
-                                        {paginated.map((c) => (
-                                            <tr key={c.id} className="border-t hover:bg-gray-50 transition">
-                                                <td className="px-4 py-3">{c.name}</td>
-
-                                                <td className="px-4 py-3">
-                                                    {c.isActive ? (
-                                                        <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700">
-                                                            Active
-                                                        </span>
-                                                    ) : (
-                                                        <span className="px-3 py-1 text-xs rounded-full bg-red-100 text-red-700">
-                                                            Inactive
-                                                        </span>
-                                                    )}
-                                                </td>
-
-                                                <td className="px-4 py-3 text-right space-x-2">
-                                                    <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700">
-                                                        Edit
-                                                    </Button>
-
-                                                    <Button
-                                                        size="sm"
-                                                        variant={c.isActive ? "destructive" : "default"}
-                                                        className={c.isActive ? "" : "bg-green-600 hover:bg-green-700"}
-                                                    >
-                                                        {c.isActive ? "Deactivate" : "Activate"}
-                                                    </Button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ))}
-                </CardContent>
-
-                {/* PAGINATION */}
-                {!showForm && (
-                    <Pagination
-                        page={page}
-                        totalPages={totalPages}
-                        onPrev={() => setPage(page - 1)}
-                        onNext={() => setPage(page + 1)}
-                    />
-                )}
-            </Card>
-            {/* STATE SELECT MODAL */}
-            <SelectDialog
-                open={stateModal}
-                onClose={() => setStateModal(false)}
-                title="Select State"
-                fetchData={api.GetAllState}
-                searchKey="name"
-                labelKey="name"
-                valueKey="id"
-                onSelect={(state) => {
-                    setStateId(state.id);
-                    setSelectedStateName(state.id);
-                }}
+        {!showForm && (
+          <div className="flex justify-between mb-6">
+            <SearchBar
+              value={search}
+              onChange={setSearch}
+              placeholder="Search city..."
             />
 
-        </div>
-    );
+            <div className="flex gap-3">
+              <Button
+                className="bg-black hover:bg-gray-800 flex gap-2"
+                onClick={() => exportToExcel(cities, "Cities")}
+              >
+                <FileSpreadsheet size={18} />
+                Export Excel
+              </Button>
+
+              <Button
+                className="bg-blue-600 flex gap-2"
+                onClick={() => setShowForm(true)}
+              >
+                <Plus size={18} />
+                Add City
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {showForm && (
+          <div className="bg-gray-50 p-6 rounded-lg border mb-6">
+            <h2 className="font-semibold mb-4">
+              {editId ? "Edit City" : "Add City"}
+            </h2>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                placeholder="City Name"
+                value={cityName}
+                onChange={e => setCityName(e.target.value)}
+                required
+              />
+
+              <div className="relative">
+                <Input
+                  value={stateName}
+                  readOnly
+                  placeholder="Select State"
+                  className="cursor-pointer pr-10"
+                  onClick={() => setStateModal(true)}
+                  required
+                />
+                <Search
+                  size={18}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
+                  onClick={() => setStateModal(true)}
+                />
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    resetForm();
+                    setShowForm(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="bg-blue-600">
+                  {editId ? "Update City" : "Save City"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {!showForm &&
+          (loading ? (
+            <TableSkeleton rows={5} />
+          ) : (
+            <div className="border rounded-lg">
+              <table className="w-full">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="p-3 text-left">City</th>
+                    <th className="p-3 text-left">Status</th>
+                    <th className="p-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginated.map(c => (
+                    <tr key={c.id} className="border-b">
+                      <td className="p-3">{c.name}</td>
+                      <td className="p-3">
+                        {c.isActive ? "Active" : "Inactive"}
+                      </td>
+                      <td className="p-3 text-right space-x-2">
+                        <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700" onClick={() => handleEdit(c)}>
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() =>
+                            setDeleteDialog({ id: c.id, name: c.name })
+                          }
+                        >
+                          Delete
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+
+        {!showForm && (
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPrev={() => setPage(p => p - 1)}
+            onNext={() => setPage(p => p + 1)}
+          />
+        )}
+      </CardContent>
+
+      {/* State selector */}
+      <SelectDialog
+        open={stateModal}
+        onClose={() => setStateModal(false)}
+        title="Select State"
+        fetchData={api.GetAllState}
+        searchKey="name"
+        labelKey="name"
+        valueKey="id"
+        onSelect={state => {
+          setStateId(state.id);
+          setStateName(state.id);
+          setStateModal(false);
+        }}
+      />
+      {deleteDialog && (
+        <ConfirmDialog
+          open
+          title="Delete City"
+          description={`Delete "${deleteDialog.name}" permanently?`}
+          confirmText="Delete"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteDialog(null)}
+        />
+      )}
+    </Card>
+  );
 }

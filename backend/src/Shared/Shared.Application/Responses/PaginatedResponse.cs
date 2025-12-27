@@ -23,8 +23,8 @@ public class PaginatedResponse : ApiResponse
             }
         };
 
-        response.AddErrors(r.Errors); 
-        
+        response.AddErrors(r.Errors);
+
         return response;
     }
 }

@@ -1,7 +1,9 @@
 ﻿using Location.Application;
 using Location.Application.Interfaces.Repositories;
+using Location.Application.Interfaces.Services;
 using Location.Infrastructure.Db;
 using Location.Infrastructure.Repositories;
+using Location.Infrastructure.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -24,6 +26,9 @@ public static class LocationModule
         services.AddScoped<ICountryRepository, CountryRepository>();
         services.AddScoped<IStateRepository, StateRepository>();
         services.AddScoped<ICityRepository, CityRepository>();
+
+        //Register Services
+        services.AddScoped<ILocationLookupService, LocationLookupService>();
 
         services.AddLocationApplication();
 

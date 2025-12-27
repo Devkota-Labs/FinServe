@@ -11,7 +11,7 @@ internal sealed class PasswordHistoryRepository(AuthDbContext authDbContext) : I
 
     public async Task<List<PasswordHistory>> GetRecentAsync(int userId, int limit, CancellationToken ct)
     {
-        return  await _db.PasswordHistories
+        return await _db.PasswordHistories
             .Where(x => x.UserId == userId)
             .OrderByDescending(x => x.Id)
             .Take(limit)

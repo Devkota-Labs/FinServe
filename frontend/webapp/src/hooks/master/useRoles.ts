@@ -2,17 +2,15 @@ import { useEffect, useState } from "react";
 import {api} from "@/lib/api";
 
 export function useRoles() {
-  const [states, setstates] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
 
   function load() {
     setLoading(true);
     api.GetAllState()
-      .then((res) => setstates(res.data || []))
+      .then((res) => setRoles(res.data || []))
       .finally(() => setLoading(false));
   }
-
   useEffect(load, []);
-
-  return { states, loading, reload: load };
+  return { roles, loading, reload: load };
 }

@@ -11,7 +11,7 @@ internal sealed class MenuRepository(UserDbContext db) : IMenuRepository
     {
         return await db.Menus.AnyAsync(x => x.Id == id, cancellationToken).ConfigureAwait(false);
     }
-    
+
     public async Task<List<Menu>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await db.Menus

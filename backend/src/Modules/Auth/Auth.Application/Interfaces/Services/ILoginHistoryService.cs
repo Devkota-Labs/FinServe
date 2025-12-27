@@ -7,4 +7,5 @@ public interface ILoginHistoryService
 {
     Task<Result> LoginAsync(int userId, int sessionId, bool isSuccess, string? failureReason, HttpContext? httpContext, CancellationToken cancellationToken = default);
     Task<Result> LogoutAsync(int sessionId, CancellationToken cancellationToken = default);
+    Task<Result<bool>> ExistsAsync(int userId, string ip, string userAgent, CancellationToken cancellationToken = default);
 }

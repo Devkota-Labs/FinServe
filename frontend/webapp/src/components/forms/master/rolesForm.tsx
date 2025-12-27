@@ -1,47 +1,54 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { useEffect, useMemo, useState } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Plus } from "lucide-react";
 import { api } from "@/lib/api";
 import AppAlert from "@/components/common/AppAlert";
 import { exportToExcel } from "@/lib/exportExcel";
 import SearchBar from "@/components/common/SearchBar";
 import Pagination from "@/components/common/Pagination";
 import TableSkeleton from "@/components/common/TableSkeleton";
-
-import {
-  Search,
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { toast } from "@/hooks/use-toast";
 
 export default function RolesPage() {
-  // FORM STATES
+  /* ---------- Data ---------- */
+  const [roles, setRoles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  /* ---------- UI ---------- */
+  const [showForm, setShowForm] = useState(false);
+  const [search, setSearch] = useState("");
+
+  /* ---------- Pagination ---------- */
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 8;
+
+  /* ---------- Form ---------- */
   const [roleName, setRoleName] = useState("");
   const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editRoleId, setEditRoleId] = useState("");
-  // LOADING
-  const [loading, setLoading] = useState(true);
-  // UI
-  const [showForm, setShowForm] = useState(false);
-  // MESSAGES
+
+  /* ---------- Edit mode ---------- */
+  const [editId, setEditId] = useState<number | null>(null);
+  const [originalRole, setOriginalRole] = useState<any>(null);
+
+  /* ---------- Alerts ---------- */
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
-  // SEARCH
-  const [search, setSearch] = useState("");
-  // PAGINATION
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 8;
-  // ROLES LIST
-  const [roles, setRoles] = useState([]);
+
+  /* ---------- Delete ---------- */
+  const [deleteDialog, setDeleteDialog] =
+    useState<{ id: number; name: string } | null>(null);
+
+  /* ---------- Load ---------- */
+
   async function loadRoles() {
     setLoading(true);
     const res = await api.getRoles();
@@ -53,155 +60,224 @@ export default function RolesPage() {
     loadRoles();
   }, []);
 
-  // AUTO CLEAR MESSAGES
-  useEffect(() => {
-    if (successMsg || errorMsg) {
-      const t = setTimeout(() => {
-        setSuccessMsg("");
-        setErrorMsg("");
-      }, 2500);
-      return () => clearTimeout(t);
-    }
-  }, [successMsg, errorMsg]);
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setSuccessMsg("");
-    setErrorMsg("");
-
-    try {
-      if (isEditing) {
-        // await api.updateRole(editRoleId, { name: roleName, description, isActive });
-        setSuccessMsg("Role updated successfully!");
-      } else {
-        await api.addRoles({ name: roleName, description, isActive });
-        setSuccessMsg("Role added successfully!");
-      }
-
-      loadRoles();
-      resetForm();
-      setShowForm(false);
-
-    } catch (err) {
-      setErrorMsg(err.message || "Something went wrong");
-    }
-  }
+  /* ---------- Helpers ---------- */
 
   function resetForm() {
     setRoleName("");
     setDescription("");
     setIsActive(true);
-    setIsEditing(false);
-    setEditRoleId("");
+    setEditId(null);
+    setOriginalRole(null);
   }
 
-  function handleEdit(role) {
+  function handleEdit(role: any) {
     setRoleName(role.name);
     setDescription(role.description);
     setIsActive(role.isActive);
-    setEditRoleId(role.id);
 
-    setIsEditing(true);
+    setEditId(role.id);
+    setOriginalRole(role);
     setShowForm(true);
   }
-  function handleToggle(role) {
-    // api.updateRole(role.id, { ...role, isActive: !role.isActive });
-    loadRoles();
+
+  function getChangedFields() {
+    if (!originalRole) return {};
+
+    const payload: any = {};
+
+    if (roleName !== originalRole.name)
+      payload.name = roleName;
+
+    if (description !== originalRole.description)
+      payload.description = description;
+
+    if (isActive !== originalRole.isActive)
+      payload.isActive = isActive;
+
+    return payload;
   }
-  // FILTER
-  const filteredRoles = roles.filter((r) =>
-    r.name.toLowerCase().includes(search.toLowerCase()) ||
-    r.description.toLowerCase().includes(search.toLowerCase())
+
+  /* ---------- Submit ---------- */
+
+  async function handleSubmit(e: any) {
+    e.preventDefault();
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    try {
+      let res;
+      if (editId) {
+        const payload = getChangedFields();
+        if (Object.keys(payload).length === 0) {
+          setErrorMsg("No changes detected");
+          return;
+        }
+        res = await api.updateRoles(editId, payload);
+      } else {
+        res = await api.addRoles({
+          name: roleName,
+          description,
+          isActive,
+        });
+      }
+
+      if (res?.success) {
+        setSuccessMsg(
+          editId ? "Role updated successfully!" : "Role added successfully!"
+        );
+        loadRoles();
+        resetForm();
+        setShowForm(false);
+      } else {
+        setErrorMsg(res?.message || "Operation failed");
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || "Operation failed");
+    }
+  }
+
+  /* ---------- Delete ---------- */
+
+  async function handleDeleteConfirm() {
+    if (!deleteDialog) return;
+
+    try {
+      await api.deleteRoles(deleteDialog.id);
+      toast({
+        title: "Deleted",
+        description: `${deleteDialog.name} deleted successfully`,
+      });
+      loadRoles();
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialog(null);
+    }
+  }
+
+  /* ---------- Auto-hide alerts ---------- */
+
+  useEffect(() => {
+    if (!errorMsg && !successMsg) return;
+    const t = setTimeout(() => {
+      setErrorMsg("");
+      setSuccessMsg("");
+    }, 2500);
+    return () => clearTimeout(t);
+  }, [errorMsg, successMsg]);
+
+  /* ---------- Filter + Pagination ---------- */
+
+  const filtered = useMemo(
+    () =>
+      roles.filter(
+        r =>
+          r.name.toLowerCase().includes(search.toLowerCase()) ||
+          r.description.toLowerCase().includes(search.toLowerCase())
+      ),
+    [roles, search]
   );
 
-  const paginated = filteredRoles.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const totalPages = Math.ceil(filteredRoles.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+
+  /* ---------- UI ---------- */
+
   return (
-    <div>
-      <Card className="w-full shadow-md border rounded-xl">
-        <CardHeader className="flex justify-between items-center">
-          <CardTitle className="text-2xl">Roles Management</CardTitle>
-        </CardHeader>
+    <Card className="shadow-md rounded-xl">
+      <CardHeader className="flex justify-between items-center">
+        <CardTitle className="text-2xl">Roles Management</CardTitle>
+      </CardHeader>
 
-        <CardContent>
+      <CardContent>
+        {errorMsg && <AppAlert type="error" message={errorMsg} />}
+        {successMsg && <AppAlert type="success" message={successMsg} />}
 
-          {errorMsg && <AppAlert type="error" message={errorMsg} />}
-          {successMsg && <AppAlert type="success" message={successMsg} />}
+        {!showForm && !loading && (
+          <div className="flex justify-between mb-6">
+            <SearchBar
+              value={search}
+              onChange={setSearch}
+              placeholder="Search role..."
+            />
 
-          {/* TOP BAR */}
-          {!showForm && !loading && (
-            <div className="flex justify-between items-center mb-6">
-              <SearchBar value={search} onChange={setSearch} placeholder="Search country..." />
-              {/* ADD BUTTON */}
-              <div className="flex gap-3">
-                <Button  className="bg-black hover:bg-gray-800" onClick={() => exportToExcel(roles, "Roles Details")}>
-                  Export Excel
-                </Button>
-                <Button onClick={() => {resetForm();setShowForm(true);}} className="bg-blue-600 flex items-center gap-2">
-                <Plus size={18} /> Add Role
+            <div className="flex gap-3">
+              <Button
+                className="bg-black hover:bg-gray-800"
+                onClick={() => exportToExcel(roles, "Roles")}
+              >
+                Export Excel
               </Button>
+
+              <Button
+                className="bg-blue-600 flex gap-2"
+                onClick={() => setShowForm(true)}
+              >
+                <Plus size={18} />
+                Add Role
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {showForm && (
+          <div className="bg-gray-50 p-6 rounded-lg border mb-6">
+            <h2 className="font-semibold mb-4">
+              {editId ? "Edit Role" : "Create Role"}
+            </h2>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                placeholder="Role Name"
+                value={roleName}
+                onChange={e => setRoleName(e.target.value)}
+                required
+              />
+
+              <Textarea
+                placeholder="Role Description"
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                required
+              />
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={isActive}
+                  onCheckedChange={v => setIsActive(!!v)}
+                />
+                <span className="text-sm font-medium">Is Active</span>
               </div>
-            </div>
-          )}
 
-          {/* TOP BAR SKELETON */}
-          {!showForm && loading && (
-            <div className="flex justify-between items-center mb-6">
-              <Skeleton className="h-10 w-64" />
-              <Skeleton className="h-10 w-28" />
-            </div>
-          )}
-          {showForm && !loading && (
-            <div className="mb-8 bg-gray-50 p-6 rounded-lg border">
-              <h2 className="text-xl font-semibold mb-4">
-                {isEditing ? "Edit Role" : "Create Role"}
-              </h2>
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => {
+                    resetForm();
+                    setShowForm(false);
+                  }}
+                >
+                  Cancel
+                </Button>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+                <Button type="submit" className="bg-blue-600">
+                  {editId ? "Update Role" : "Save Role"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Role Name</label>
-                  <Input
-                    value={roleName}
-                    onChange={(e) => setRoleName(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Role Description</label>
-                  <Textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Checkbox checked={isActive} onCheckedChange={(v) => setIsActive(!!v)} />
-                  <span className="text-sm font-medium">Is Active</span>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      resetForm();
-                      setShowForm(false);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-
-                  <Button type="submit" className="bg-blue-600 text-white">
-                    {isEditing ? "Update Role" : "Save Role"}
-                  </Button>
-                </div>
-
-              </form>
-            </div>
-          )}
-          {!showForm && (loading ? (<TableSkeleton rows={5} />):(
-            <div className="rounded-xl border overflow-hidden">
+        {!showForm &&
+          (loading ? (
+            <TableSkeleton rows={5} />
+          ) : (
+            <div className="border rounded-xl overflow-hidden">
               <table className="w-full">
                 <thead className="bg-gray-100">
                   <tr>
@@ -213,43 +289,54 @@ export default function RolesPage() {
                 </thead>
 
                 <tbody>
-                  {paginated.map((role) => (
-                    <tr key={role.id} className="border-t hover:bg-gray-50">
+                  {paginated.map(role => (
+                    <tr key={role.id} className="border-t">
                       <td className="p-3">{role.name}</td>
                       <td className="p-3">{role.description}</td>
                       <td className="p-3">
-                        {role.isActive ? (
-                          <span className="text-green-700 font-medium">Active</span>
-                        ) : (
-                          <span className="text-red-700 font-medium">Inactive</span>
-                        )}
+                        {role.isActive ? "Active" : "Inactive"}
                       </td>
-
                       <td className="p-3 text-right space-x-2">
-                        <Button size="sm" variant="secondary" onClick={() => handleEdit(role)}>
+                        <Button size="sm"  className="bg-yellow-600 hover:bg-yellow-700" onClick={() => handleEdit(role)}>
                           Edit
                         </Button>
-
                         <Button
                           size="sm"
-                          variant={role.isActive ? "destructive" : "default"}
-                          onClick={() => handleToggle(role)}
+                          variant="destructive"
+                          onClick={() =>
+                            setDeleteDialog({ id: role.id, name: role.name })
+                          }
                         >
-                          {role.isActive ? "Deactivate" : "Activate"}
+                          Delete
                         </Button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
-
               </table>
             </div>
           ))}
-        </CardContent>
+
         {!showForm && (
-            <Pagination page={page} totalPages={totalPages} onPrev={() => setPage(page - 1)} onNext={() => setPage(page + 1)}/>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPrev={() => setPage(p => p - 1)}
+            onNext={() => setPage(p => p + 1)}
+          />
         )}
-      </Card>
-    </div>
+      </CardContent>
+
+      {deleteDialog && (
+        <ConfirmDialog
+          open
+          title="Delete Role"
+          description={`Delete "${deleteDialog.name}" permanently?`}
+          confirmText="Delete"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteDialog(null)}
+        />
+      )}
+    </Card>
   );
 }

@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Shared.Application.Interfaces.Entities;
+using Shared.Common.Utils;
 
 namespace Shared.Infrastructure.Database.Auditing;
 
@@ -15,15 +17,15 @@ internal static class AuditingExtensions
             if (entry.State == EntityState.Added)
             {
                 entry.Entity.CreatedBy = user;
-                entry.Entity.CreatedTime = DateTime.UtcNow;
+                entry.Entity.CreatedTime = DateTimeUtil.Now;
                 entry.Entity.LastUpdatedBy = user;
-                entry.Entity.LastUpdatedTime = DateTime.UtcNow;
+                entry.Entity.LastUpdatedTime = DateTimeUtil.Now;
             }
 
             if (entry.State == EntityState.Modified)
             {
                 entry.Entity.LastUpdatedBy = user;
-                entry.Entity.LastUpdatedTime = DateTime.UtcNow;
+                entry.Entity.LastUpdatedTime = DateTimeUtil.Now;
 
                 // Prevent overwriting Create fields
                 entry.Property(x => x.CreatedTime).IsModified = false;

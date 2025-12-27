@@ -1,6 +1,8 @@
-﻿namespace Shared.Common;
+﻿using Shared.Common.Utils;
+
+namespace Shared.Common;
 
 internal sealed class SystemDateTimeProvider : IDateTimeProvider
 {
-    public DateTime UtcNow => DateTime.UtcNow;
+    public DateTime UtcNow => DateTimeUtil.Now;
 }

@@ -39,12 +39,7 @@ internal sealed class MenuReadService(ILogger logger, IMenuRepository menuReposi
         // Sort children
         foreach (var item in lookup.Values)
         {
-            var orderd = item.Children.OrderBy(x => x.Order);
-
-            foreach (var childMenu in orderd)
-            {
-                item.Children.Add(childMenu);
-            }
+            _ = item.Children.OrderBy(x => x.Order);
         }
 
         // Sort roots

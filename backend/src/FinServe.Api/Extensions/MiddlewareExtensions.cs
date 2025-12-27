@@ -1,6 +1,7 @@
 ﻿using FinServe.Api.Middlewares;
 
 namespace FinServe.Api.Extensions;
+
 internal static class MiddlewareExtensions
 {
     public static IApplicationBuilder UseMiddlewares(this IApplicationBuilder app)

@@ -8,7 +8,8 @@ using System.Net.Mail;
 
 namespace Shared.Infrastructure.Services;
 
-internal sealed class SmtpEmailService(ILogger logger, IOptions<EmailOptions> options)
+internal sealed class SmtpEmailService(ILogger logger
+    , IOptions<EmailOptions> options)
     : BaseService(logger.ForContext<SmtpEmailService>(), options.Value)
     , IEmailService
 {
@@ -35,8 +36,8 @@ internal sealed class SmtpEmailService(ILogger logger, IOptions<EmailOptions> op
 
         using var client = new SmtpClient(_options.SmtpHost, _options.SmtpPort)
         {
-            Credentials = new NetworkCredential(_options.UserName, _options.Password),
-            EnableSsl = true
+            Credentials = new NetworkCredential(_options.SmtpUser, _options.SmtpPassword),
+            EnableSsl = _options.UseSsl
         };
 
         await client.SendMailAsync(message, cancellationToken).ConfigureAwait(false);

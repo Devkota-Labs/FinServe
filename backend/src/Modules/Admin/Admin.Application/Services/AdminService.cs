@@ -1,26 +1,30 @@
 ﻿using Admin.Application.Dtos;
 using Admin.Application.Interfaces.Services;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using Notification.Domain.Enums;
+using Notification.Domain.Events;
 using Serilog;
 using Shared.Application.Dtos;
-using Shared.Application.Interfaces.Services;
 using Shared.Application.Results;
 using Shared.Common.Services;
+using Shared.Infrastructure.Background;
+using Shared.Infrastructure.Options;
 using Users.Application.Interfaces.Services;
 
 namespace Admin.Application.Services;
 
 internal sealed class AdminService(
     ILogger logger,
-    IConfiguration configuration,
     IUserReadService userReadService,
     IUserWriteService userWriteService,
-    IEmailService emailService,
-    IEmailTemplateRenderer emailTemplateRenderer
+    IOptions<FrontendOptions> frontendOption,
+    IBackgroundEventQ eventQueue
     )
     : BaseService(logger.ForContext<AdminService>(), null)
     , IAdminService
 {
+    private readonly FrontendOptions _frontendOptions = frontendOption.Value;
+
     public async Task<Result<ICollection<PendingUserDto>>> GetUnApprovedUsersAsync(CancellationToken cancellationToken = default)
     {
         var pendingUsers = await userReadService.GetUnApprovedUsers(cancellationToken).ConfigureAwait(false);
@@ -47,19 +51,19 @@ internal sealed class AdminService(
 
         await userWriteService.ApproveUser(userId, cancellationToken).ConfigureAwait(false);
 
-        var frontendBaseUrl = configuration["AppConfig:Frontend:BaseUrl"];
+        var loginUrl = $"{_frontendOptions.BaseUrl}login";
 
-        var loginUrl = $"{frontendBaseUrl}/login";
-
-        var html = emailTemplateRenderer.Render(
-        "UserApproved.html",
-        new
-        {
-            UserName = user.UserName,
-            LoginUrl = loginUrl,
-        });
-
-        await emailService.SendAsync(user.Email, "Account Approved", html, cancellationToken: cancellationToken).ConfigureAwait(false);
+        //Raise notification event (AFTER success)
+        await eventQueue.EnqueueAsync(
+            new NotificationEvent(
+                NotificationType.UserApproved,
+                user.Id, // notification target user                
+                new Dictionary<string, object?>
+                {
+                    ["UserName"] = user.UserName,
+                    ["LoginUrl"] = new Uri(loginUrl)
+                }),
+            cancellationToken).ConfigureAwait(false);
 
         return Result.Ok("User approved successfully.");
     }
@@ -73,19 +77,19 @@ internal sealed class AdminService(
 
         await userWriteService.UnlockUser(userId, cancellationToken).ConfigureAwait(false);
 
-        var frontendBaseUrl = configuration["AppConfig:Frontend:BaseUrl"];
+        var loginUrl = $"{_frontendOptions.BaseUrl}login";
 
-        var loginUrl = $"{frontendBaseUrl}/login";
-
-        var html = emailTemplateRenderer.Render(
-        "UserUnlocked.html",
-        new
-        {
-            UserName = user.UserName,
-            LoginUrl = loginUrl,
-        });
-
-        await emailService.SendAsync(user.Email, "Your account has been unlocked", html, cancellationToken: cancellationToken).ConfigureAwait(false);
+        //Publish notification
+        await eventQueue.EnqueueAsync(
+          new NotificationEvent(
+              NotificationType.UserUnlocked,
+              user.Id,
+              new Dictionary<string, object?>
+              {
+                  ["UserName"] = user.UserName,
+                  ["LoginUrl"] = new Uri(loginUrl),
+              }),
+          cancellationToken).ConfigureAwait(false);
 
         return Result.Ok("User unlocked successfully.");
     }

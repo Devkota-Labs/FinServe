@@ -57,7 +57,7 @@ internal sealed class CityRepository(LocationDbContext db) : ICityRepository
 
     public async Task AddAsync(City city, CancellationToken cancellationToken = default)
     {
-        await db.Cities.AddAsync(city,cancellationToken).ConfigureAwait(false);
+        await db.Cities.AddAsync(city, cancellationToken).ConfigureAwait(false);
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 

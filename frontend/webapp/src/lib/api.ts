@@ -2,8 +2,9 @@
 import { getAccessToken, setAccessToken, clearAccessToken } from "./auth";
 import { refreshAccessToken } from "./refreshClient";
 import { normalizeHeaders } from "./utils";
-export const API_BASE_URL = "http://54.81.12.127:5005/api"
-//export const API_BASE_URL = "https://tzrhqvey9d.execute-api.us-east-1.amazonaws.com/prod/api";//"http://54.81.12.127:5005/api";////"http://54.81.12.127:5005/api";//;//"https://localhost:5005/api"; //"https://tzrhqvey9d.execute-api.us-east-1.amazonaws.com/prod/api"; //
+//Base URL//http://54.81.12.127:5005/
+export const API_BASE_URL = "https://tzrhqvey9d.execute-api.us-east-1.amazonaws.com/prod/api";//////"http://54.81.12.127:5005/api";//;//"https://localhost:5005/api"; //"https://tzrhqvey9d.execute-api.us-east-1.amazonaws.com/prod/api"; //
+
 
 // -----------------------------
 // RAW REQUEST (no retry logic)
@@ -50,7 +51,22 @@ async function request(path: string, options: RequestInit = {}) {
   }
   return result;
 }
+async function requestSafe(path: string, options: RequestInit = {}) {
+  try {
+    const res = await rawRequest(path, options);
+    const result = await res.json();
 
+    if (result.success !== true) {
+      console.warn(result.message);
+      return [];
+    }
+
+    return result.data ?? [];
+  } catch (err) {
+    console.warn("Safe API failed:", path);
+    return [];
+  }
+}
 
 // -----------------------------
 // EXPORT API METHODS
@@ -81,10 +97,10 @@ export const api = {
     }),
 
   forgotPassword: (data: any) =>
-  request(`/v1/Auth/forgot-password`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  }),
+    request(`/v1/Auth/forgot-password`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   register: (data: any) =>
     request("/v1/Auth/register", {   //api/v1/Auth/register
@@ -92,13 +108,23 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  emailVerification: (Id:number|string) =>
+  emailVerification: (Id: number | string) =>
     request(`/v1/Auth/send-verification-email/${Id}`, { ///api/v1/Auth/send-verification-email/{userId}
       method: "POST",
     }),
-  mobileVerification: (Id:number|string) =>
-    request(`/v1/Auth/send-otp/${Id}`, { 
+  mobileVerification: (Id: number | string) =>
+    request(`/v1/Auth/send-otp/${Id}`, {
       method: "POST",
+    }),
+    updateEmail: (UserId: number | string,email:string) =>
+    request(`/v1/Auth/update-email/${UserId}`, {
+      method: "PATCH",
+      body: JSON.stringify({newEmail:email}),
+    }),
+    updateMobile: (UserId: number | string,mobile:string) =>
+    request(`/v1/Auth/update-mobile/${UserId}`, {
+      method: "PATCH",
+      body: JSON.stringify({newMobile:mobile}),
     }),
   /*
          ------------------------------User-----------------------------------------
@@ -141,10 +167,25 @@ export const api = {
     request("/v1/Users", {
       method: "GET",
     }),
-    assingRoles: (userId:number|string,roles:any) =>
-    request(`/v1/Admin/assign${userId}`, {  ///api/v1/Admin/assign/{userId}
-      method: "POST",
+  assingRoles: (userId: number | string, roles: any) =>
+    request(`/v1/Admin/assign/${userId}`, {  ///api/v1/Admin/assign/{userId}
+      method: "PATCH",
       body: JSON.stringify(roles),
+    }),
+  updateRoles: (id: number | string, data: any) =>
+    request(`/v1/Roles/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  approveUser: (userId: number | string) =>
+    request(`/v1/Admin/approve/${userId}`, {        ////api/v1/Admin/approve/{userId}
+      method: "PATCH",
+      body: JSON.stringify({}),
+    }),
+  unlockUser: (userId: number | string) =>
+    request(`/v1/unlock/${userId}`, {        ////api/v1/Admin/approve/{userId}
+      method: "PATCH",
+      body: JSON.stringify({}),
     }),
   /*
        ------------------------------Masters-----------------------------------------
@@ -153,7 +194,21 @@ export const api = {
     request("/v1/Countries", {
       method: "GET",
     }),
-
+  addCountrys: (data: any) =>
+    request("/v1/Countries", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  deleteCountrys: (Id: number | string) =>
+    request(`/v1/Countries/${Id}`, {
+      method: "DELETE",
+      body: JSON.stringify({}),
+    }),
+  updateCountrys: (id: number | string, data: any) =>
+    request(`/v1/Countries/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
   // Get states by countryId
   GetStateByContryID: (Id: string | number) =>
     request(`/v1/States/country/${Id}`, {   //GetCityByStateID /api/v1/States/country/{countryId}
@@ -162,6 +217,21 @@ export const api = {
   GetAllState: () =>
     request(`/v1/States`, {
       method: "GET",
+    }),
+  addStates: (data: any) =>
+    request("/v1/States", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  deleteStates: (id: number | string) =>
+    request(`/v1/States/${id}`, {
+      method: "DELETE",
+      body: JSON.stringify({}),
+    }),
+  updateStates: (id: number | string, data: any) =>
+    request(`/v1/States/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
     }),
   // Get cities by stateId
   GetCityByStateID: (Id: string | number) =>
@@ -172,37 +242,46 @@ export const api = {
     request(`/v1/Cities`, {
       method: "GET",
     }),
-  //Get Genders for registration
-  GetGender: () =>
-    request("/v1/Lookups/genders", {
-      method: "GET",
-    }),
-  addCountrys: (data: any) =>
-    request("/v1/Countries", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-  addStates: (data: any) =>
-    request("/v1/States", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
   addCity: (data: any) =>
     request("/v1/Cities", {
       method: "POST",
       body: JSON.stringify(data),
+    }),
+  deleteCity: (id: number | string) =>
+    request(`/v1/Cities/${id}`, {
+      method: "DELETE",
+      body: JSON.stringify({}),
+    }),
+  updateCity: (id: number | string, data: any) =>
+    request(`/v1/Cities/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  //Get Genders for registration
+  GetGender: () =>
+    request("/v1/Lookups/genders", {
+      method: "GET",
     }),
   addRoles: (data: any) =>
     request("/v1/Roles", {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  deleteRoles: (id: number | string) =>
+    request(`/v1/Roles/${id}`, {
+      method: "DELETE",
+      body: JSON.stringify({}),
+    }),
   getMenus: () =>
     request("/v1/Menus", {   ///api/v1/Menus
       method: "GET",
     }),
   getProfile: () =>
-    request("/v1/User/profile", {
+    request("/v1/Users/profile", {   ///api/v1/Users/profile
+      method: "GET",
+    }),
+  GetAddressType: () =>
+    request("/v1/Lookups/addressTypes", {   ///api/v1/Users/profile  ///api/v1/Lookups/addressTypes
       method: "GET",
     }),
 };

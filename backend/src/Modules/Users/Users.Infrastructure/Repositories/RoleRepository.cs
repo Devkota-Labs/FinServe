@@ -12,7 +12,7 @@ internal sealed class RoleRepository(UserDbContext db) : IRoleRepository
     {
         return await db.Roles.AnyAsync(x => x.Id == id, cancellationToken).ConfigureAwait(false);
     }
-    
+
     public async Task<List<Role>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await db.Roles
