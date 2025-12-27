@@ -644,6 +644,9 @@ internal sealed class AuthService(
         return Result.Ok("Password Changed successful.");
     }
 
+    // ======================================================
+    // 14. Send Approval Mail
+    // ======================================================
     public async Task<Result> SendApprovalMailAsync(int userId, CancellationToken cancellationToken)
     {
         var user = await usersRead.GetByIdAsync(userId, cancellationToken).ConfigureAwait(false);

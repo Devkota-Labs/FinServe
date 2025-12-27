@@ -31,5 +31,5 @@ public interface IAuthService
     Task<Result> ChangePasswordAsync(int userId, ChangePasswordDto dto, CancellationToken cancellationToken);
 
     //Admin approval follow-up
-    Task<Result> SendApprovalMailAsync(int userId, CancellationToken cancellationToken);
+    Task<Result> SendApprovalMailAsync(int userId, CancellationToken cancellationToken = default);
 }

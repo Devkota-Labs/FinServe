@@ -7,7 +7,6 @@ using Shared.Common.Utils;
 using System.Security.Cryptography;
 
 namespace Auth.Application.Services;
-
 internal sealed class RefreshTokenService(ILogger logger, IRefreshTokenRepository refreshTokenRepository)
     : BaseService(logger.ForContext<RefreshTokenService>(), null), IRefreshTokenService
 {

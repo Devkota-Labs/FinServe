@@ -16,10 +16,13 @@ using Shared.Infrastructure.Options;
 namespace Auth.Api.Controllers;
 
 [ApiVersion("1.0")]
-public sealed class AuthController(ILogger logger
-    , IAuthService authService
-    , IPasswordReminderService passwordReminderService
-    , IOptions<FrontendOptions> frontendOption)
+public sealed class AuthController(
+    ILogger logger,
+    IAuthService authService,
+    IPasswordReminderService passwordReminderService,
+    IOptions<FrontendOptions> frontendOption,
+    IUserNameAvailabilityService userNameAvailabilityService
+    )
     : BaseApiController(logger.ForContext<AuthController>())
 {
     private readonly FrontendOptions _frontendOptions = frontendOption.Value;
@@ -63,9 +66,7 @@ public sealed class AuthController(ILogger logger
     {
         var serviceResponse = await authService.VerifyEmailAsync(new VerifyEmailDto(email, token), cancellationToken).ConfigureAwait(false);
 
-        var redirectUrl = serviceResponse.Success
-        ? $"{_frontendOptions.BaseUrl}auth/email-verified"
-        : $"{_frontendOptions.BaseUrl}auth/email-verification-failed?reason={serviceResponse.Message}";
+        var redirectUrl = $"{_frontendOptions.BaseUrl}auth/email-verified?isSuccess{serviceResponse.Success}&message={serviceResponse.Message}";
 
         return Redirect(redirectUrl);
     }
@@ -197,6 +198,14 @@ public sealed class AuthController(ILogger logger
     public async Task<IActionResult> SendApprovalMail(int userId, CancellationToken cancellationToken)
     {
         var serviceResponse = await authService.SendApprovalMailAsync(userId, cancellationToken).ConfigureAwait(false);
+
+        return FromResult(serviceResponse);
+    }
+
+    [HttpPost("check-username-availability")]
+    public async Task<IActionResult> CheckUserNameAvailabilty([FromBody] CheckUserNameDto checkUserNameDto, CancellationToken cancellationToken)
+    {
+        var serviceResponse = await userNameAvailabilityService.IsAvailableAsync(checkUserNameDto.UserName, 5, cancellationToken).ConfigureAwait(false);
 
         return FromResult(serviceResponse);
     }

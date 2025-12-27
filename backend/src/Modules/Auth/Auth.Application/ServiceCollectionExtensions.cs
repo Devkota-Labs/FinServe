@@ -14,6 +14,7 @@ public static class ServiceCollectionExtensions
         services.AddOptions<PasswordPolicyOptions>().BindConfiguration($"{appConfigSectionName}:{SecurityOptions.SectionName}:{PasswordPolicyOptions.SectionName}").ValidateOnStart();
         services.AddOptions<AdminOptions>().BindConfiguration($"{appConfigSectionName}:{AdminOptions.SectionName}").ValidateOnStart();
         services.AddOptions<ApiOptions>().BindConfiguration($"{appConfigSectionName}:{ApiOptions.SectionName}").ValidateOnStart();
+        services.AddOptions<ReservedUsernameOptions>().BindConfiguration($"{appConfigSectionName}:{ReservedUsernameOptions.SectionName}").ValidateOnStart();
 
         //Configure Services
         services.AddScoped<IAuthService, AuthService>();
@@ -22,6 +23,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPasswordHistoryService, PasswordHistoryService>();
         services.AddScoped<ILoginHistoryService, LoginHistoryService>();
         services.AddScoped<ILoginRiskService, LoginRiskService>();
+        services.AddScoped<IUserNamePolicyService, UserNamePolicyService>();
+        services.AddScoped<IUserNameAvailabilityService, UserNameAvailabilityService>();
 
         return services;
     }

@@ -35,6 +35,10 @@ internal sealed class UserEfConfig : IEntityTypeConfiguration<User>
         builder.Navigation(u => u.Addresses)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
+        builder.HasIndex(u => u.UserName);
+        builder.HasIndex(u => u.Email);
+        builder.HasIndex(u => u.Mobile);
+
         UserSeeder.Seed(builder);
     }
 }

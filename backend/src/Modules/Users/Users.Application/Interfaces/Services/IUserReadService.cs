@@ -17,4 +17,5 @@ public interface IUserReadService
 
     Task<ICollection<PendingUserDto>> GetUnApprovedUsers(CancellationToken cancellationToken = default);
     Task<ICollection<LockedUserDto>> GetLockedUsers(CancellationToken cancellationToken = default);
+    Task<bool> IsUserNameAvailableAsync(string userName, CancellationToken cancellationToken = default);
 }

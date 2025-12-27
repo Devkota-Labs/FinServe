@@ -96,6 +96,13 @@ internal sealed class UserReadService(ILogger logger, UserDbContext userDbContex
             .ToListAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<bool> IsUserNameAvailableAsync(string userName, CancellationToken cancellationToken = default)
+    {
+        return await userDbContext.Users
+           .AsNoTracking()
+           .AnyAsync(u => u.UserName == userName, cancellationToken).ConfigureAwait(false);
+    }
+
     // Mapping Expression
     private static Expression<Func<User, AuthUserDto>> ToAuthUser()
         => x => new AuthUserDto(x.UserRoles != null ? x.UserRoles.Select(r => r.Role.Name).ToList() : new List<string>())

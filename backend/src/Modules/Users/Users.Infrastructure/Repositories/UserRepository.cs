@@ -69,7 +69,6 @@ internal sealed class UserRepository(UserDbContext db) : IUserRepository
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
-
     public async Task AddAsync(User user, CancellationToken cancellationToken = default)
     {
         await db.Users.AddAsync(user, cancellationToken).ConfigureAwait(false);
