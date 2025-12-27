@@ -1,12 +1,12 @@
 ﻿using Microsoft.Extensions.Options;
 using Notification.Application.Interfaces;
-using Notification.Application.Orchestrator;
+using Notification.Domain.Enums;
+using Notification.Domain.Events;
 using Serilog;
 using Shared.Application.Results;
 using Shared.Common.Services;
 using Shared.Common.Utils;
-using Shared.Domain.Enums.Notifications;
-using Shared.Domain.Notifications;
+using Shared.Infrastructure.Background;
 using Shared.Infrastructure.Options;
 using Shared.Security.Configurations;
 using Users.Application.Interfaces.Services;
@@ -18,8 +18,7 @@ internal sealed class PasswordReminderService(
     IUserReadService userReadService,
     IOptions<FrontendOptions> frontendOptions,
     IOptions<SecurityOptions> securityOptions,
-    INotificationDeduplicationService notificationDeduplicationService,
-    NotificationOrchestrator notificationOrchestrator
+    IBackgroundEventQ eventQueue
     )
     : BaseService(logger.ForContext<PasswordReminderService>(), null)
     , IPasswordReminderService
@@ -36,35 +35,18 @@ internal sealed class PasswordReminderService(
 
         var changePasswordUrl = $"{_frontendOptions.BaseUrl}change-password";
 
-        var command = new NotifyCommand
-        {
-            UserId = userId,
-            TemplateKey = NotificationTemplateKey.PasswordExpiring,
-            Model = new
-            {
-                UserName = user.UserName,
-                DaysLeft = (int)(DateTimeUtil.Now - expiryDate).TotalDays,
-                ChangePasswordUrl = new Uri(changePasswordUrl),
-            },
-            Category = NotificationCategory.Security,
-            Severity = NotificationSeverity.Warning,
-            ActionType = NotificationActionType.ResetPassword,
-
-            Channels =
-            [
-                NotificationChannel.InApp,
-                NotificationChannel.Email
-            ]
-        };
-
-        // Prevent spam (manual endpoint respects same rule)
-        if (await notificationDeduplicationService.ExistsAsync(
-                userId,
-                command.TemplateKey,
-                TimeSpan.FromHours(24), cancellationToken).ConfigureAwait(false))
-            return Result.Ok("Duplicate notification detected.");
-
-        await notificationOrchestrator.SendAsync(command, cancellationToken).ConfigureAwait(false);
+        //Publish SuspiciousLoginAlert notification
+        await eventQueue.EnqueueAsync(
+           new NotificationEvent(
+               NotificationType.PasswordExpiring,
+               user.Id,
+               new Dictionary<string, object?>
+               {
+                   ["UserName"] = user.UserName,
+                   ["DaysLeft"] = (int)(DateTimeUtil.Now - expiryDate).TotalDays,
+                   ["ChangePasswordUrl"] = new Uri(changePasswordUrl),
+               }),
+           cancellationToken).ConfigureAwait(false);
 
         return Result.Ok($"Password Reminder email sent to {user.Email}");
     }

@@ -8,85 +8,196 @@ using Notification.Infrastructure.Db;
 
 #nullable disable
 
-namespace Notification.Infrastructure.Migrations;
-
-[DbContext(typeof(NotificationDbContext))]
-partial class NotificationDbContextModelSnapshot : ModelSnapshot
+namespace Notification.Infrastructure.Migrations
 {
-    protected override void BuildModel(ModelBuilder modelBuilder)
+    [DbContext(typeof(NotificationDbContext))]
+    partial class NotificationDbContextModelSnapshot : ModelSnapshot
     {
+        protected override void BuildModel(ModelBuilder modelBuilder)
+        {
 #pragma warning disable 612, 618
-        modelBuilder
-            .HasAnnotation("ProductVersion", "9.0.11")
-            .HasAnnotation("Relational:MaxIdentifierLength", 64);
+            modelBuilder
+                .HasAnnotation("ProductVersion", "9.0.11")
+                .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
-        MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
+            MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
-        modelBuilder.Entity("Notification.Domain.Entities.UserNotification", b =>
-            {
-                b.Property<int>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("int")
-                    .HasColumnName("Id");
+            modelBuilder.Entity("Notification.Domain.Entities.InAppNotification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Id");
 
-                MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                b.Property<int>("ActionType")
-                    .HasColumnType("int")
-                    .HasColumnName("Action_Type");
+                    b.Property<int>("ActionType")
+                        .HasColumnType("int")
+                        .HasColumnName("Action_Type");
 
-                b.Property<int>("Category")
-                    .HasColumnType("int")
-                    .HasColumnName("Category");
+                    b.Property<string>("ActionUrl")
+                        .HasColumnType("longtext")
+                        .HasColumnName("Action_Url");
 
-                b.Property<DateTime>("CreatedAt")
-                    .HasColumnType("datetime(6)")
-                    .HasColumnName("Created_At");
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("Body");
 
-                b.Property<bool>("IsRead")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("tinyint(1)")
-                    .HasDefaultValue(false)
-                    .HasColumnName("Is_Read");
+                    b.Property<int>("Category")
+                        .HasColumnType("int")
+                        .HasColumnName("Category");
 
-                b.Property<string>("Message")
-                    .IsRequired()
-                    .HasMaxLength(1000)
-                    .HasColumnType("varchar(1000)")
-                    .HasColumnName("Message");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Created_At");
 
-                b.Property<int?>("ReferenceId")
-                    .HasColumnType("int")
-                    .HasColumnName("Reference_Id");
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("Is_Read");
 
-                b.Property<int>("ReferenceType")
-                    .HasColumnType("int")
-                    .HasColumnName("Reference_Type");
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Read_At");
 
-                b.Property<int>("Severity")
-                    .HasColumnType("int")
-                    .HasColumnName("Severity");
+                    b.Property<int?>("ReferenceId")
+                        .HasColumnType("int")
+                        .HasColumnName("Reference_Id");
 
-                b.Property<int>("TemplateKey")
-                    .HasColumnType("int")
-                    .HasColumnName("Template_Key");
+                    b.Property<int>("ReferenceType")
+                        .HasColumnType("int")
+                        .HasColumnName("Reference_Type");
 
-                b.Property<string>("Title")
-                    .IsRequired()
-                    .HasMaxLength(200)
-                    .HasColumnType("varchar(200)")
-                    .HasColumnName("Title");
+                    b.Property<int>("Severity")
+                        .HasColumnType("int")
+                        .HasColumnName("Severity");
 
-                b.Property<int>("UserId")
-                    .HasColumnType("int")
-                    .HasColumnName("User_Id");
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("Title");
 
-                b.HasKey("Id");
+                    b.Property<int>("Type")
+                        .HasColumnType("int")
+                        .HasColumnName("Type");
 
-                b.HasIndex("UserId", "IsRead");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int")
+                        .HasColumnName("User_Id");
 
-                b.ToTable("tbl_Notification_UserNotifications", (string)null);
-            });
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "IsRead");
+
+                    b.ToTable("tbl_Notifications_InAppNotifications", (string)null);
+                });
+
+            modelBuilder.Entity("Notification.Domain.Entities.NotificationDeduplication", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Channel")
+                        .HasColumnType("int")
+                        .HasColumnName("Channel");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Created_At");
+
+                    b.Property<string>("DedupKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("Dedup_Key");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int")
+                        .HasColumnName("Type");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int")
+                        .HasColumnName("User_Id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Type", "Channel", "DedupKey", "CreatedAt");
+
+                    b.ToTable("tbl_Notifications_Deduplications", (string)null);
+                });
+
+            modelBuilder.Entity("Notification.Domain.Entities.NotificationOutbox", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Category")
+                        .HasColumnType("int")
+                        .HasColumnName("Category");
+
+                    b.Property<int>("Channel")
+                        .HasColumnType("int")
+                        .HasColumnName("Channel");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Created_At");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("longtext")
+                        .HasColumnName("Error");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("Payload");
+
+                    b.Property<int?>("ReferenceId")
+                        .HasColumnType("int")
+                        .HasColumnName("Reference_Id");
+
+                    b.Property<int>("ReferenceType")
+                        .HasColumnType("int")
+                        .HasColumnName("Reference_Type");
+
+                    b.Property<int>("RetryCount")
+                        .HasColumnType("int")
+                        .HasColumnName("Retry_Count");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Sent_At");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("int")
+                        .HasColumnName("Severity");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int")
+                        .HasColumnName("Status");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int")
+                        .HasColumnName("Type");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int")
+                        .HasColumnName("User_Id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("tbl_Notifications_Outbox", (string)null);
+                });
 #pragma warning restore 612, 618
+        }
     }
 }

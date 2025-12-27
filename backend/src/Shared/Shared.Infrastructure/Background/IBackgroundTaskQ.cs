@@ -1,7 +1,7 @@
 ﻿namespace Shared.Infrastructure.Background;
 
-public interface IBackgroundTaskQ
+public interface IBackgroundEventQ
 {
-    void Queue(Func<IServiceProvider, Task> workItem);
-    Task<Func<IServiceProvider, Task>> DequeueAsync(CancellationToken cancellationToken);
+    Task EnqueueAsync<T>(T @event, CancellationToken cancellationToken = default);
+    Task<T> DequeueAsync<T>(CancellationToken cancellationToken = default);
 }

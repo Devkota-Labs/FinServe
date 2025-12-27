@@ -11,15 +11,15 @@ namespace Notification.Api.Controllers;
 [ApiVersion("1.0")]
 [Authorize]
 public sealed class NotificationsController(ILogger logger
-    , IUserNotificationService userNotificationService)
+    , INotificationQueryService notificationQueryService)
     : BaseApiController(logger.ForContext<NotificationsController>())
 {
     [HttpGet]
-    public async Task<IActionResult> GetMyNotifications(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetMyNotifications([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
 
-        var serviceResponse = await userNotificationService.GetByUserIdAsync(userId, 20, cancellationToken).ConfigureAwait(false);
+        var serviceResponse = await notificationQueryService.GetByUserIdAsync(userId, page, pageSize, cancellationToken).ConfigureAwait(false);
 
         return FromResult(serviceResponse);
     }
@@ -29,7 +29,7 @@ public sealed class NotificationsController(ILogger logger
     {
         var userId = GetCurrentUserId();
 
-        var serviceResponse = await userNotificationService.GetUnreadCountAsync(userId, cancellationToken).ConfigureAwait(false);
+        var serviceResponse = await notificationQueryService.GetUnreadCountAsync(userId, cancellationToken).ConfigureAwait(false);
 
         return FromResult(serviceResponse);
     }
@@ -37,7 +37,7 @@ public sealed class NotificationsController(ILogger logger
     [HttpPatch("read/{id}")]
     public async Task<IActionResult> MarkAsRead(int id, CancellationToken cancellationToken)
     {
-        var serviceResponse = await userNotificationService.MarkAsReadAsync(id, cancellationToken).ConfigureAwait(false);
+        var serviceResponse = await notificationQueryService.MarkAsReadAsync(id, cancellationToken).ConfigureAwait(false);
 
         return FromResult(serviceResponse);
     }

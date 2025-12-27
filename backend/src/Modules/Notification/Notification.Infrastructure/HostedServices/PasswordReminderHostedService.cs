@@ -4,12 +4,15 @@ using Notification.Application.Interfaces;
 using Notification.Application.Options;
 using Serilog;
 using Shared.Common.Services;
+using Shared.Common.Utils;
 
 namespace Notification.Infrastructure.HostedServices;
 
-internal sealed class PasswordReminderHostedService(ILogger logger
-    , IServiceProvider serviceProvider
-    , IOptions<ScheduledJobsOptions> scheduledJobOptions) 
+internal sealed class PasswordReminderHostedService(
+    ILogger logger,
+    IServiceProvider serviceProvider,
+    IOptions<ScheduledJobsOptions> scheduledJobOptions
+    )
     : BaseBackgroundService(logger.ForContext<PasswordReminderHostedService>(), null)
 {
     private readonly ScheduledJobsOptions _scheduledJobOptions = scheduledJobOptions.Value;
@@ -32,7 +35,7 @@ internal sealed class PasswordReminderHostedService(ILogger logger
                 if (_scheduledJobOptions.PasswordExpiryCheckHourUtc >= 0)
                 {
                     // Wait until next runHour UTC
-                    var now = DateTime.UtcNow;
+                    var now = DateTimeUtil.Now;
                     var next = new DateTime(now.Year, now.Month, now.Day, _scheduledJobOptions.PasswordExpiryCheckHourUtc, 0, 0, DateTimeKind.Utc);
                     if (next <= now) next = next.AddDays(1);
                     var delay = next - now;
@@ -61,5 +64,5 @@ internal sealed class PasswordReminderHostedService(ILogger logger
         }
 
         Logger.Information("{Name} stopping.", Name);
-    }   
+    }
 }

@@ -2,6 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Shared.Application\Shared.Application.csproj" />
     <ProjectReference Include="..\..\..\Shared\Shared.Infrastructure\Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Notification\Notification.Domain\Notification.Domain.csproj" />
     <ProjectReference Include="..\..\Users\Users.Application\Users.Application.csproj" />
   </ItemGroup>
 </Project>

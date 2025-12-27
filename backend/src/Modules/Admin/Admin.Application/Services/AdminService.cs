@@ -1,15 +1,14 @@
 ﻿using Admin.Application.Dtos;
 using Admin.Application.Interfaces.Services;
-using Admin.Application.Models;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Notification.Domain.Enums;
+using Notification.Domain.Events;
 using Serilog;
 using Shared.Application.Dtos;
 using Shared.Application.Results;
 using Shared.Common.Services;
 using Shared.Infrastructure.Background;
 using Shared.Infrastructure.Options;
-using Shared.Security;
 using Users.Application.Interfaces.Services;
 
 namespace Admin.Application.Services;
@@ -19,7 +18,7 @@ internal sealed class AdminService(
     IUserReadService userReadService,
     IUserWriteService userWriteService,
     IOptions<FrontendOptions> frontendOption,
-    IBackgroundTaskQ backgroundTaskQ
+    IBackgroundEventQ eventQueue
     )
     : BaseService(logger.ForContext<AdminService>(), null)
     , IAdminService
@@ -54,20 +53,17 @@ internal sealed class AdminService(
 
         var loginUrl = $"{_frontendOptions.BaseUrl}login";
 
-        var evt = new UserApprovedContext
-        {
-            UserId = user.Id,
-            UserName = user.UserName,
-            LoginUrl= new Uri(loginUrl),
-        };
-
-        //Background-safe execution
-        backgroundTaskQ.Queue(async sp =>
-        {
-            var notifier = sp.GetRequiredService<IUserApprovedNotifier>();
-
-            await notifier.NotifyAsync(evt, cancellationToken).ConfigureAwait(false);
-        });
+        //Raise notification event (AFTER success)
+        await eventQueue.EnqueueAsync(
+            new NotificationEvent(
+                NotificationType.UserApproved,
+                user.Id, // notification target user                
+                new Dictionary<string, object?>
+                {
+                    ["UserName"] = user.UserName,
+                    ["LoginUrl"] = new Uri(loginUrl)
+                }),
+            cancellationToken).ConfigureAwait(false);
 
         return Result.Ok("User approved successfully.");
     }
@@ -83,20 +79,17 @@ internal sealed class AdminService(
 
         var loginUrl = $"{_frontendOptions.BaseUrl}login";
 
-        var evt = new UserUnlockedContext
-        {
-            UserId = user.Id,
-            UserName = user.UserName,
-            LoginUrl = new Uri(loginUrl),
-        };
-
-        //Background-safe execution
-        backgroundTaskQ.Queue(async sp =>
-        {
-            var notifier = sp.GetRequiredService<IUserUnlockedNotifier>();
-
-            await notifier.NotifyAsync(evt, cancellationToken).ConfigureAwait(false);
-        });
+        //Publish notification
+        await eventQueue.EnqueueAsync(
+          new NotificationEvent(
+              NotificationType.UserUnlocked,
+              user.Id,
+              new Dictionary<string, object?>
+              {
+                  ["UserName"] = user.UserName,
+                  ["LoginUrl"] = new Uri(loginUrl),
+              }),
+          cancellationToken).ConfigureAwait(false);
 
         return Result.Ok("User unlocked successfully.");
     }

@@ -6,13 +6,14 @@ namespace Notification.Infrastructure.Db;
 
 internal sealed class NotificationDbContext(DbContextOptions<NotificationDbContext> options) : BaseDbContext(options)
 {
-    public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
-
+    public DbSet<InAppNotification> InAppNotifications => Set<InAppNotification>();
+    public DbSet<NotificationOutbox> Outbox => Set<NotificationOutbox>();
+    public DbSet<NotificationDeduplication> Deduplications => Set<NotificationDeduplication>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        var module = nameof(Notification);
+        var module = "Notifications";
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(NotificationDbContext).Assembly);
 

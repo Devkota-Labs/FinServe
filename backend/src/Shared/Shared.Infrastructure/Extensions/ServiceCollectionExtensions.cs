@@ -20,16 +20,19 @@ public static class ServiceCollectionExtensions
         // register IHttpContextAccessor if needed for auditing
         services.AddHttpContextAccessor();
 
-        services.AddScoped<IEmailService, SmtpEmailService>();
+        services.AddScoped<IEmailService, SmtpEmailService>();        
         services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
-        services.AddScoped<IEmailTemplateContextProvider, EmailTemplateContextProvider>();
         services.AddScoped<ISmsSender, TestSmsSender>();
         services.AddScoped<IAppUrlProvider, AppUrlProvider>();
         services.AddScoped<IOtpGenerator, OtpGenerator>();
-        services.AddScoped<INotificationTemplateRenderer, NotificationTemplateRenderer>();
         services.AddScoped<IDeviceResolver, DeviceResolver>();
-        services.AddSingleton<IBackgroundTaskQ, BackgroundTaskQueue>();
-        services.AddHostedService<QueuedHostedService>();
+        services.AddSingleton<IBackgroundEventQ, InMemoryBackgroundEventQueue>();
+        //services.AddSingleton<IBackgroundEventQ>(_ => new InMemoryBackgroundEventQueue(capacity: 1000));
+
+        // Shared layout
+        services.AddSingleton<IEmailLayoutProvider, EmbeddedEmailLayoutProvider>();
+
+        //services.AddHostedService<QueuedHostedService>();
 
         return services;
     }

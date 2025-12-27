@@ -1,23 +1,40 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Notification.Application.Interfaces;
-using Notification.Infrastructure.Db;
+﻿using Notification.Application.Interfaces;
+using Notification.Domain.Entities;
+using Notification.Domain.Enums;
 using Serilog;
 using Shared.Common.Services;
-using Shared.Domain.Notifications;
+using Shared.Common.Utils;
 
 namespace Notification.Infrastructure.Services;
 
-internal sealed class NotificationDeduplicationService(ILogger logger, NotificationDbContext notificationDbContext)
-: BaseService(logger.ForContext<NotificationDbContext>(), null)
+internal sealed class NotificationDeduplicationService(
+    ILogger logger,
+    INotificationDeduplicationRepository _repository
+    )
+    : BaseService(logger.ForContext<NotificationDeduplicationService>(), null)
     , INotificationDeduplicationService
 {
-    public async Task<bool> ExistsAsync(int userId, NotificationTemplateKey key, TimeSpan window, CancellationToken cancellationToken = default)
+    public async Task<bool> IsDuplicateAsync(int userId, NotificationType type, NotificationChannelType channel, string? dedupKey, TimeSpan window, CancellationToken cancellationToken = default)
     {
-        var since = DateTime.UtcNow.Subtract(window);
+        var exists = await _repository.ExistsAsync(
+            userId,
+            type,
+            channel,
+            dedupKey,
+            DateTimeUtil.Now.Subtract(window),
+            cancellationToken).ConfigureAwait(false);
 
-        return await notificationDbContext.UserNotifications.AnyAsync(x =>
-            x.UserId == userId &&
-            x.TemplateKey == key &&
-            x.CreatedAt >= since, cancellationToken).ConfigureAwait(false);
+        if (exists)
+            return true;
+
+        await _repository.AddAsync(new NotificationDeduplication
+        {
+            UserId = userId,
+            Type = type,
+            Channel = channel,
+            DedupKey = dedupKey
+        }, cancellationToken).ConfigureAwait(false);
+
+        return false;
     }
 }
