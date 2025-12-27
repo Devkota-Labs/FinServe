@@ -1,11 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Mvc" />
-    <PackageReference Include="Asp.Versioning.Mvc"/>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc">
+      <TreatAsUsed>true</TreatAsUsed>
+    </PackageReference>
+    <PackageReference Include="Asp.Versioning.Mvc" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Shared.Application\Shared.Application.csproj" />
-    <ProjectReference Include="..\..\..\Shared\Shared.Security\Shared.Security.csproj" />
     <ProjectReference Include="..\Location.Application\Location.Application.csproj" />
   </ItemGroup>
 </Project>

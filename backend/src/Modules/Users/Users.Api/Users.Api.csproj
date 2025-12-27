@@ -1,11 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc" />
-    <PackageReference Include="Asp.Versioning.Mvc"/>
+    <PackageReference Include="Asp.Versioning.Mvc" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Shared.Security\Shared.Security.csproj" />
-    <ProjectReference Include="..\..\Auth\Auth.Application\Auth.Application.csproj" />
     <ProjectReference Include="..\Users.Application\Users.Application.csproj" />
   </ItemGroup>
 </Project>
