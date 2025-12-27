@@ -1,9 +1,9 @@
 "use client";
+
 import { useState, useMemo, useEffect } from "react";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Search } from "lucide-react";
 import { api } from "@/lib/api";
 import AppAlert from "@/components/common/AppAlert";
@@ -14,203 +14,260 @@ import Pagination from "@/components/common/Pagination";
 import TableSkeleton from "@/components/common/TableSkeleton";
 import PageHeader from "@/components/common/PageHeader";
 import SelectDialog from "@/components/common/SelectDialog";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { toast } from "@/hooks/use-toast";
 
 export default function StatesPage() {
-
   const { states, loading, reload } = useStates();
-  // UI states
+
+  /* UI */
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
+
+  /* Pagination */
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 8;
-  // Form fields
+
+  /* Form fields */
   const [stateName, setStateName] = useState("");
   const [stateCode, setStateCode] = useState("");
-  const [countryId, setCountryId] = useState("");
+  const [countryId, setCountryId] = useState<number | null>(null);
   const [countryName, setCountryName] = useState("");
 
-  // Alert
+  /* Edit mode */
+  const [editId, setEditId] = useState<number | null>(null);
+  const [originalState, setOriginalState] = useState<any>(null);
+
+  /* Alerts */
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Country Selector
+  /* Dialogs */
   const [countryModal, setCountryModal] = useState(false);
+  const [deleteDialog, setDeleteDialog] =
+    useState<{ id: number; name: string } | null>(null);
 
-  /** Reset Form */
+  /* ---------- Helpers ---------- */
+
   function resetForm() {
     setStateName("");
     setStateCode("");
-    setCountryId("");
+    setCountryId(null);
     setCountryName("");
+    setEditId(null);
+    setOriginalState(null);
   }
-  /** Handle Form Submit */
-  async function handleSubmit(e) {
+
+  function handleEdit(state: any) {
+    setStateName(state.name);
+    setStateCode(state.stateCode);
+    setCountryId(state.countryId);
+    setCountryName(state.countryName);
+    setEditId(state.id);
+    setOriginalState(state);
+    setShowForm(true);
+  }
+
+  function getChangedFields() {
+    if (!originalState) return {};
+    const payload: any = {};
+    if (stateName !== originalState.name)
+      payload.name = stateName;
+    if (stateCode !== originalState.stateCode)
+      payload.stateCode = stateCode;
+    if (countryId !== originalState.countryId)
+      payload.countryId = countryId;
+    return payload;
+  }
+  /* ---------- Submit ---------- */
+  async function handleSubmit(e: any) {
     e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
-
     try {
-      const res = await api.addStates({
-        name: stateName,
-        stateCode,
-        countryId
-      });
-      if (res?.success===true) {
-        setSuccessMsg("State added successfully!");
+      let res;
+      if (editId) {
+        const payload = getChangedFields();
+        if (Object.keys(payload).length === 0) {
+          setErrorMsg("No changes detected");
+          return;
+        }
+        res = await api.updateStates(editId, payload);
+      } else {
+        res = await api.addStates({
+          name: stateName,
+          stateCode,
+          countryId,
+        });
+      }
+      if (res?.success) {
+        setSuccessMsg(
+          editId ? "State updated successfully!" : "State added successfully!"
+        );
         reload();
         resetForm();
         setShowForm(false);
       } else {
-        setErrorMsg(res.message || "Failed to add state.");
+        setErrorMsg(res?.message || "Operation failed");
       }
-
-    } catch (err) {
-      setErrorMsg(err.message || "Failed to add state!");
+    } catch (err: any) {
+      setErrorMsg(err.message || "Operation failed");
     }
   }
-  /** Auto Hide Alerts */
-  useEffect(() => {
-    if (errorMsg || successMsg) {
-      const t = setTimeout(() => {
-        setErrorMsg("");
-        setSuccessMsg("");
-      }, 2500);
-      return () => clearTimeout(t);
+  /* ---------- Delete ---------- */
+  async function handleDeleteConfirm() {
+    if (!deleteDialog) return;
+
+    try {
+      await api.deleteStates(deleteDialog.id);
+      toast({
+        title: "Deleted",
+        description: `${deleteDialog.name} deleted successfully`,
+      });
+      reload();
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialog(null);
     }
+  }
+  /* ---------- Auto-hide alerts ---------- */
+  useEffect(() => {
+    if (!errorMsg && !successMsg) return;
+    const t = setTimeout(() => {
+      setErrorMsg("");
+      setSuccessMsg("");
+    }, 2500);
+    return () => clearTimeout(t);
   }, [errorMsg, successMsg]);
-  /** Filter + Pagination */
+  /* ---------- Filter + Pagination ---------- */
   const filtered = useMemo(
-    () => states.filter(s =>
-      s.name.toLowerCase().includes(search.toLowerCase())
-    ),
+    () => states.filter(s => s.name.toLowerCase().includes(search.toLowerCase())),
     [states, search]
   );
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  /* ---------- UI ---------- */
   return (
-    <div>
-      <Card className="w-full shadow-md border rounded-xl">
-        <CardHeader className="flex justify-between items-center">
-          <PageHeader title="State Management"></PageHeader>
-        </CardHeader>
-        <CardContent>
-          {errorMsg && <AppAlert type="error" message={errorMsg} />}
-          {successMsg && <AppAlert type="success" message={successMsg} />}
-          {/* TOP BAR */}
-          {!showForm && !loading && (
-            <div className="flex justify-between items-center mb-6">
-              {/* Search Box with Icon */}
-              <SearchBar value={search} onChange={setSearch} placeholder="Search state..." />
-              <div className="flex gap-3">
+    <Card className="shadow-md rounded-xl">
+      <CardHeader className="flex justify-between items-center">
+        <PageHeader title="State Management" />
+      </CardHeader>
+
+      <CardContent>
+        {errorMsg && <AppAlert type="error" message={errorMsg} />}
+        {successMsg && <AppAlert type="success" message={successMsg} />}
+
+        {!showForm && !loading && (
+          <div className="flex justify-between mb-6">
+            <SearchBar
+              value={search}
+              onChange={setSearch}
+              placeholder="Search state..."
+            />
+            <div className="flex gap-3">
+              <Button onClick={() => exportToExcel(states, "State Details")}>
+                Export Excel
+              </Button>
+              <Button className="bg-blue-600" onClick={() => setShowForm(true)}>
+                + Add State
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {showForm && (
+          <div className="bg-gray-50 p-6 rounded-lg border mb-6">
+            <h2 className="font-semibold mb-4">
+              {editId ? "Edit State" : "Add State"}
+            </h2>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                placeholder="State Name"
+                value={stateName}
+                onChange={e => setStateName(e.target.value)}
+                required
+              />
+
+              <Input
+                placeholder="State Code"
+                value={stateCode}
+                onChange={e => setStateCode(e.target.value)}
+                required
+              />
+
+              <div className="relative">
+                <Input
+                  value={countryName}
+                  readOnly
+                  placeholder="Select Country"
+                  className="cursor-pointer pr-10"
+                  onClick={() => setCountryModal(true)}
+                  required
+                />
+                <Search
+                  size={18}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
+                  onClick={() => setCountryModal(true)}
+                />
+              </div>
+
+              <div className="flex justify-end gap-3">
                 <Button
-                  className="bg-black hover:bg-gray-800"
-                  onClick={() => exportToExcel(states, "State Details")}
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    resetForm();
+                    setShowForm(false);
+                  }}
                 >
-                  Export Excel
+                  Cancel
                 </Button>
-                <Button className="bg-blue-600" onClick={() => setShowForm(true)}>
-                  + Add State
+                <Button type="submit" className="bg-blue-600">
+                  {editId ? "Update State" : "Save State"}
                 </Button>
               </div>
-            </div>
-          )}
-          {/* FORM */}
-          {showForm && (
-            <div className="mb-8 bg-gray-50 p-6 rounded-lg border">
-              <h2 className="text-lg font-semibold mb-4">Add State</h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">State Name</label>
-                  <Input
-                    value={stateName}
-                    onChange={(e) => setStateName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">State Code</label>
-                  <Input
-                    value={stateCode}
-                    onChange={(e) => setStateCode(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Select Country</label>
-                  <div className="relative">
-                    <Input
-                      value={countryName}
-                      readOnly
-                      placeholder="Select country"
-                      className="cursor-pointer pr-10"
-                      onClick={() => setCountryModal(true)}
-                      required
-                    />
-                    <Search
-                      size={18}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 cursor-pointer"
-                      onClick={() => setCountryModal(true)}
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      resetForm();
-                      setShowForm(false);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button className="bg-blue-600 text-white" type="submit">
-                    Save State
-                  </Button>
-                </div>
-              </form>
-            </div>
-          )}
-          {/* TABLE / SKELETON */}
-          {!showForm && (loading ? (
+            </form>
+          </div>
+        )}
+
+        {!showForm &&
+          (loading ? (
             <TableSkeleton rows={3} />
           ) : (
-            <div className="overflow-x-auto rounded-lg border shadow-sm bg-white">
-              <table className="min-w-[800px] w-full">
+            <div className="border rounded-lg">
+              <table className="w-full">
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-4 py-3">State</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
+                    <th className="p-3">State</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {paginated.length === 0 && (
-                    <tr>
-                      <td className="py-6 text-center text-gray-500 italic" colSpan={3}>
-                        No states found
+                  {paginated.map(s => (
+                    <tr key={s.id} className="border-b">
+                      <td className="p-3">{s.name}</td>
+                      <td className="p-3">
+                        {s.isActive ? "Active" : "Inactive"}
                       </td>
-                    </tr>
-                  )}
-                  {paginated.map((s) => (
-                    <tr key={s.id} className="border-b hover:bg-gray-50">
-                      <td className="px-4 py-3">{s.name}</td>
-
-                      <td className="px-4 py-3">
-                        {s.isActive ? (
-                          <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700">Active</span>
-                        ) : (
-                          <span className="px-3 py-1 text-xs rounded-full bg-red-100 text-red-700">Inactive</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right space-x-2">
-                        <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700">Edit</Button>
+                      <td className="p-3 text-right space-x-2">
+                        <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700" onClick={() => handleEdit(s)}>
+                          Edit
+                        </Button>
                         <Button
                           size="sm"
-                          variant={s.isActive ? "destructive" : "default"}
-                          className={s.isActive ? "" : "bg-green-600 hover:bg-green-700"}
+                          variant="destructive"
+                          onClick={() =>
+                            setDeleteDialog({ id: s.id, name: s.name })
+                          }
                         >
-                          {s.isActive ? "Deactivate" : "Activate"}
+                          Delete
                         </Button>
                       </td>
                     </tr>
@@ -219,18 +276,18 @@ export default function StatesPage() {
               </table>
             </div>
           ))}
-        </CardContent>
-        {/* PAGINATION */}
+
         {!showForm && (
           <Pagination
             page={page}
             totalPages={totalPages}
-            onPrev={() => setPage(page - 1)}
-            onNext={() => setPage(page + 1)}
+            onPrev={() => setPage(p => p - 1)}
+            onNext={() => setPage(p => p + 1)}
           />
         )}
-      </Card>
-      {/* COUNTRY MODAL */}
+      </CardContent>
+
+      {/* Country selector */}
       <SelectDialog
         open={countryModal}
         onClose={() => setCountryModal(false)}
@@ -239,11 +296,23 @@ export default function StatesPage() {
         searchKey="name"
         labelKey="name"
         valueKey="id"
-        onSelect={(country) => {
+        onSelect={country => {
           setCountryId(country.id);
           setCountryName(country.id);
+          setCountryModal(false);
         }}
       />
-    </div>
+
+      {deleteDialog && (
+        <ConfirmDialog
+          open
+          title="Delete State"
+          description={`Delete "${deleteDialog.name}" permanently?`}
+          confirmText="Delete"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteDialog(null)}
+        />
+      )}
+    </Card>
   );
 }

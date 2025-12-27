@@ -1,6 +1,7 @@
 "use client";
+
 import { useState, useMemo, useEffect } from "react";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCountries } from "@/hooks/master/useCountries";
@@ -11,171 +12,233 @@ import SearchBar from "@/components/common/SearchBar";
 import Pagination from "@/components/common/Pagination";
 import TableSkeleton from "@/components/common/TableSkeleton";
 import PageHeader from "@/components/common/PageHeader";
+import { toast } from "@/hooks/use-toast";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 export default function CountriesPage() {
   const { countries, loading, reload } = useCountries();
-  // UI
+
+  /* UI */
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
-  // Pagination
+
+  /* Pagination */
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 8;
-  // Form Fields
+
+  /* Form */
   const [countryName, setCountryName] = useState("");
   const [isoCode, setIsoCode] = useState("");
   const [mobileCode, setMobileCode] = useState("");
   const [isActive, setIsActive] = useState(true);
-  // Alerts
+
+  /* Edit mode */
+  const [editId, setEditId] = useState<number | null>(null);
+  const [originalCountry, setOriginalCountry] = useState<any>(null);
+
+  /* Alerts */
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
-  /** Reset Form */
+
+  /* Delete dialog */
+  const [deleteDialog, setDeleteDialog] = useState<{ id: number; name: string } | null>(null);
+
+  /* ---------- Helpers ---------- */
+
   function resetForm() {
     setCountryName("");
     setIsoCode("");
     setMobileCode("");
     setIsActive(true);
+    setEditId(null);
+    setOriginalCountry(null);
   }
-  /** Submit */
-  async function handleSubmit(e) {
+
+  function handleEdit(country: any) {
+    setCountryName(country.name);
+    setIsoCode(country.isoCode);
+    setMobileCode(country.mobileCode);
+    setIsActive(country.isActive);
+
+    setEditId(country.id);
+    setOriginalCountry(country);
+    setShowForm(true);
+  }
+
+  function getChangedFields() {
+    if (!originalCountry) return {};
+    const payload: any = {};
+    if (countryName !== originalCountry.name)
+      payload.name = countryName;
+    if (isoCode !== originalCountry.isoCode)
+      payload.isoCode = isoCode;
+    if (mobileCode !== originalCountry.mobileCode)
+      payload.mobileCode = mobileCode;
+    if (isActive !== originalCountry.isActive)
+      payload.isActive = isActive;
+    return payload;
+  }
+  /* ---------- Submit ---------- */
+  async function handleSubmit(e: any) {
     e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
     try {
-      const res = await api.addCountrys({
-        name: countryName,
-        isoCode,
-        mobileCode,
-        isActive,
-      });
-      if (res?.success == true) {
-        setSuccessMsg("Country added successfully!");
+      let res;
+      if (editId) {
+        const payload = getChangedFields();
+        if (Object.keys(payload).length === 0) {
+          setErrorMsg("No changes detected");
+          return;
+        }
+        res = await api.updateCountrys(editId, payload);
+      } else {
+        res = await api.addCountrys({
+          name: countryName,
+          isoCode,
+          mobileCode,
+          isActive,
+        });
+      }
+      if (res?.success) {
+        setSuccessMsg(editId ? "Country updated successfully!" : "Country added successfully!");
         reload();
         resetForm();
         setShowForm(false);
       } else {
-        setErrorMsg(res.message || "Failed to add country!");
+        setErrorMsg(res?.message || "Operation failed");
       }
-    } catch (err) {
-      setErrorMsg(err.message || "Failed to add country!");
+    } catch (err: any) {
+      setErrorMsg(err.message || "Operation failed");
     }
   }
-  /** Auto Hide Alerts */
-  useEffect(() => {
-    if (errorMsg || successMsg) {
-      const t = setTimeout(() => {
-        setErrorMsg("");
-        setSuccessMsg("");
-      }, 2500);
-      return () => clearTimeout(t);
+  /* ---------- Delete ---------- */
+  async function handleDeleteConfirm() {
+    if (!deleteDialog) return;
+
+    try {
+      await api.deleteCountrys(deleteDialog.id);
+      toast({ title: "Deleted", description: `${deleteDialog.name} deleted successfully` });
+      reload();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setDeleteDialog(null);
     }
+  }
+  /* ---------- Alerts Auto Hide ---------- */
+  useEffect(() => {
+    if (!errorMsg && !successMsg) return;
+    const t = setTimeout(() => {
+      setErrorMsg("");
+      setSuccessMsg("");
+    }, 2500);
+    return () => clearTimeout(t);
   }, [errorMsg, successMsg]);
-  /** Filter + paginate */
+
+  /* ---------- Filter + Pagination ---------- */
+
   const filtered = useMemo(
-    () => countries.filter((c) =>
-      c.name.toLowerCase().includes(search.toLowerCase())
-    ),
+    () => countries.filter(c => c.name.toLowerCase().includes(search.toLowerCase())),
     [countries, search]
   );
+
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+
+  /* ---------- UI ---------- */
+
   return (
-    <div>
-      <Card className="w-full shadow-md border rounded-xl">
-        <CardHeader className="flex justify-between items-center">
-          <PageHeader title="Country Management"></PageHeader>
-        </CardHeader>
-        <CardContent>
-          {errorMsg && <AppAlert type="error" message={errorMsg} />}
-          {successMsg && <AppAlert type="success" message={successMsg} />}
-          {/* TOP BAR */}
-          {!showForm && !loading && (
-            <div className="flex justify-between items-center mb-6">
-              <SearchBar value={search} onChange={setSearch} placeholder="Search country..." />
-              <div className="flex gap-3">
-                <Button  className="bg-black hover:bg-gray-800" onClick={() => exportToExcel(countries, "Country Details")}>
-                  Export Excel
+    <Card className="shadow-md rounded-xl">
+      <CardHeader className="flex justify-between items-center">
+        <PageHeader title="Country Management" />
+      </CardHeader>
+
+      <CardContent>
+        {errorMsg && <AppAlert type="error" message={errorMsg} />}
+        {successMsg && <AppAlert type="success" message={successMsg} />}
+
+        {!showForm && !loading && (
+          <div className="flex justify-between mb-6">
+            <SearchBar value={search} onChange={setSearch} placeholder="Search country..." />
+            <div className="flex gap-3">
+              <Button onClick={() => exportToExcel(countries, "Country Details")}>
+                Export Excel
+              </Button>
+              <Button className="bg-blue-600" onClick={() => setShowForm(true)}>
+                + Add Country
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {showForm && (
+          <div className="bg-gray-50 p-6 rounded-lg border mb-6">
+            <h2 className="font-semibold mb-4">
+              {editId ? "Edit Country" : "Add Country"}
+            </h2>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input placeholder="Country Name" value={countryName} onChange={e => setCountryName(e.target.value)} required />
+              <Input placeholder="ISO Code" value={isoCode} onChange={e => setIsoCode(e.target.value)} required />
+              <Input placeholder="Mobile Code" value={mobileCode} onChange={e => setMobileCode(e.target.value)} required />
+
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" type="button" onClick={() => { resetForm(); setShowForm(false); }}>
+                  Cancel
                 </Button>
-                <Button className="bg-blue-600" onClick={() => setShowForm(true)}>+ Add Country </Button>
+                <Button type="submit" className="bg-blue-600">
+                  {editId ? "Update Country" : "Save Country"}
+                </Button>
               </div>
-            </div>
-          )}
-          {/* FORM */}
-          {showForm && (
-            <div className="mb-8 bg-gray-50 p-6 rounded-lg border">
-              <h2 className="text-lg font-semibold mb-4">Add Country</h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Country Name</label>
-                  <Input value={countryName} onChange={(e) => setCountryName(e.target.value)} required/>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">ISO Code</label>
-                  <Input value={isoCode} onChange={(e) => setIsoCode(e.target.value)} required />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Mobile Code</label>
-                  <Input value={mobileCode} onChange={(e) => setMobileCode(e.target.value)}  required />
-                </div>
-                <div className="flex justify-end gap-3">
-                  <Button type="button" variant="outline" onClick={() => {resetForm();setShowForm(false);}}>
-                    Cancel
-                  </Button>
-                  <Button className="bg-blue-600 text-white" type="submit">Save Country</Button>
-                </div>
-              </form>
-            </div>
-          )}
-          {/* TABLE / SKELETON */}
-          {!showForm && (loading ? (<TableSkeleton rows={5} />) : (
-            <div className="overflow-x-auto rounded-lg border shadow-sm bg-white">
-              <table className="min-w-[800px] w-full">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="px-4 py-3">Country</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginated.length === 0 && (
-                    <tr>
-                      <td className="py-6 text-center text-gray-500 italic" colSpan={3}>
-                        No countries found
-                      </td>
-                    </tr>
-                  )}
-                  {paginated.map((c) => (
-                    <tr key={c.id} className="border-b hover:bg-gray-50">
-                      <td className="px-4 py-3">{c.name}</td>
-                      <td className="px-4 py-3">
-                        {c.isActive ? (
-                          <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700">
-                            Active
-                          </span>
-                        ) : (
-                          <span className="px-3 py-1 text-xs rounded-full bg-red-100 text-red-700">
-                            Inactive
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right space-x-2">
-                        <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700">Edit</Button>
-                        <Button size="sm" variant={c.isActive ? "destructive" : "default"} className={c.isActive ? "" : "bg-green-600 hover:bg-green-700"}>
-                          {c.isActive ? "Deactivate" : "Activate"}
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
-        </CardContent>
-        {/* PAGINATION */}
+            </form>
+          </div>
+        )}
+
         {!showForm && (
-          <Pagination page={page} totalPages={totalPages} onPrev={() => setPage(page - 1)} onNext={() => setPage(page + 1)}/>
-         )}
-      </Card>
-    </div>
+          loading ? <TableSkeleton rows={5} /> :
+          <div className="border rounded-lg">
+            <table className="w-full">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-3">Country</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginated.map(c => (
+                  <tr key={c.id} className="border-b">
+                    <td className="p-3">{c.name}</td>
+                    <td className="p-3">{c.isActive ? "Active" : "Inactive"}</td>
+                    <td className="p-3 text-right space-x-2">
+                      <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700" onClick={() => handleEdit(c)}>Edit</Button>
+                      <Button size="sm" variant="destructive" onClick={() => setDeleteDialog({ id: c.id, name: c.name })}>
+                        Delete
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {!showForm && (
+          <Pagination page={page} totalPages={totalPages} onPrev={() => setPage(p => p - 1)} onNext={() => setPage(p => p + 1)} />
+        )}
+      </CardContent>
+
+      {deleteDialog && (
+        <ConfirmDialog
+          open
+          title="Delete Country"
+          description={`Delete "${deleteDialog.name}" permanently?`}
+          confirmText="Delete"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteDialog(null)}
+        />
+      )}
+    </Card>
   );
 }

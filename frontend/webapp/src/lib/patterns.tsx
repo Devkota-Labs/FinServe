@@ -121,3 +121,5 @@ export const patterns = {
   Number:/^[0-9]+$/
 
 };
+
+

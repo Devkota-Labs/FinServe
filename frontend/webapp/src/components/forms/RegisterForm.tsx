@@ -1,27 +1,34 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { User, Eye, EyeOff } from "lucide-react";
 
-import { User, Mail, Phone, Flag, MapPin, Lock, Eye, EyeOff } from "lucide-react";
 import AppAlert from "@/components/common/AppAlert";
 import { useRegistration } from "@/hooks/useRegistration";
 import { useFormMessages } from "@/hooks/useFormMessages";
 import { validateField } from "@/lib/validators";
 import { patterns } from "@/lib/patterns";
 import { api } from "@/lib/api";
-import { useRouter } from "next/navigation";
-export default function RegisterForm() {
 
+export default function RegisterForm() {
   const router = useRouter();
-  const { errorMsg, setErrorMsg, successMsg, setSuccessMsg } = useFormMessages();
-  const { registerUser, loading } = useRegistration(setErrorMsg, setSuccessMsg);
+
+  const { errorMsg, setErrorMsg, successMsg, setSuccessMsg } =
+    useFormMessages();
+
+  const { registerUser, loading } = useRegistration(
+    setErrorMsg,
+    setSuccessMsg
+  );
 
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
+  /* ================= FORM ================= */
   const [form, setForm] = useState({
     userName: "",
     email: "",
@@ -31,385 +38,356 @@ export default function RegisterForm() {
     firstName: "",
     middleName: "",
     lastName: "",
-    countryId: "",
-    cityId: "",
-    stateId: "",
-    address: "",
-    pinCode: "",
-    password:""
+    password: "",
   });
-  // Dropdown data
-  const [gender, setGender] = useState<{ code: string; displayName: string }[]>([]);
-  const [countries, setCountries] = useState<{ id: string; name: string }[]>([]);
+
+  const [AddressForm, setAddressForm] = useState({
+    addressType: "",
+    countryId: "",
+    stateId: "",
+    cityId: "",
+    addressLine1: "",
+    addressLine2: "",
+    pinCode: "",
+    isPrimary: true,
+  });
+
+  /* ================= MASTER DATA ================= */
+  const [gender, setGender] = useState<
+    { code: string; displayName: string }[]
+  >([]);
+  const [countries, setCountries] = useState<{ id: string; name: string }[]>(
+    []
+  );
   const [states, setStates] = useState<{ id: string; name: string }[]>([]);
   const [cities, setCities] = useState<{ id: string; name: string }[]>([]);
+  const [addressTypes, setAddressTypes] = useState<
+    { code: string; displayName: string }[]
+  >([]);
 
-  function updateField(field: string, value: string) {
+  /* ================= HELPERS ================= */
+  const updateField = useCallback((field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
-  }
-  //Load Genders
-  useEffect(() => {
-    api.GetGender().then((res) => {
-      setGender(res.data);
-    }).catch((err) => {
-      console.error("Error fetching Genders:", err);
-    });
-  }, [])
-
-  // Load countries on mount
-  useEffect(() => {
-    api.GetCountry()
-      .then((res) => {
-        setCountries(res.data);
-      })
-      .catch((err) => {
-        console.error("Error fetching countries:", err);
-      });
   }, []);
 
+  const updateAddressField = useCallback((field: string, value: any) => {
+    setAddressForm((prev) => ({ ...prev, [field]: value }));
+  }, []);
 
-  // Load states when country changes
+  /* ================= LOAD MASTER DATA ================= */
   useEffect(() => {
-    if (!form.countryId) {
+    api.GetGender().then((res) => setGender(res?.data || []));
+    api.GetCountry().then((res) => setCountries(res?.data || []));
+    api.GetAddressType().then((res) => setAddressTypes(res?.data || []));
+  }, []);
+
+  useEffect(() => {
+    if (!AddressForm.countryId) {
       setStates([]);
-      setForm((prev) => ({ ...prev, stateId: "" }));
+      updateAddressField("stateId", "");
+      updateAddressField("cityId", "");
       return;
     }
 
-    api.GetStateByContryID(form.countryId)
-      .then((res) => {
-        setStates(res.data || []);
-        setForm((prev) => ({ ...prev, stateId: "" }));
-      })
-      .catch((err) => {
-        console.error("Error fetching states:", err);
-      });
-  }, [form.countryId]);
+    api.GetStateByContryID(AddressForm.countryId).then((res) => {
+      setStates(res?.data || []);
+    });
+  }, [AddressForm.countryId, updateAddressField]);
 
-
-  // Load cities when state changes
   useEffect(() => {
-    if (!form.stateId) {
+    if (!AddressForm.stateId) {
       setCities([]);
-      setForm((prev) => ({ ...prev, cityId: "" }));
+      updateAddressField("cityId", "");
       return;
     }
 
-    api.GetCityByStateID(form.stateId)
-      .then((res) => {
-        setCities(res.data || []);
-        setForm((prev) => ({ ...prev, cityId: "" }));
-      })
-      .catch(console.error);
-  }, [form.stateId]);
+    api.GetCityByStateID(AddressForm.stateId).then((res) => {
+      setCities(res?.data || []);
+    });
+  }, [AddressForm.stateId, updateAddressField]);
 
-
-
+  /* ================= SUBMIT ================= */
   async function handleSubmit(e: any) {
     e.preventDefault();
     setErrors({});
     setErrorMsg("");
 
-    let newErrors: any = {};
-    const validations = [
+    let newErrors: Record<string, string> = {};
+
+    /* -------- FORM VALIDATIONS -------- */
+    const formValidations = [
       { field: "email", label: "Email", pattern: patterns.email },
       { field: "mobile", label: "Phone", pattern: patterns.phone },
       { field: "gender", label: "Gender", pattern: patterns.id },
       { field: "dateOfBirth", label: "Date of Birth", pattern: patterns.dob },
       { field: "firstName", label: "First Name", pattern: patterns.name },
       { field: "lastName", label: "Last Name", pattern: patterns.name },
-      { field: "countryId", label: "Country", pattern: patterns.id },
-      { field: "stateId", label: "State", pattern: patterns.id },
-      { field: "cityId", label: "City", pattern: patterns.id },
-      { field: "pinCode", label: "Zip Code", pattern: patterns.pinCode },
-      { field: "address", label: "Full Address", pattern: patterns.address },
-      { field: "password", label: "Password", pattern: patterns.password },
       { field: "userName", label: "User Name", pattern: patterns.address },
+      { field: "password", label: "Password", pattern: patterns.password },
     ];
-    validations.forEach(({ field, label, pattern }) => {
-      const result = validateField(form[field], label, pattern);
+
+    formValidations.forEach(({ field, label, pattern }) => {
+      const result = validateField(form[field as keyof typeof form], label, pattern);
       if (result) newErrors[field] = result;
     });
 
-    const errorCount = Object.keys(newErrors).length;
-    if (errorCount > 0) {
+    /* -------- ADDRESS VALIDATIONS -------- */
+    if (!AddressForm.addressType)
+      newErrors.addressType = "Please select address type";
+
+    const addressValidations = [
+      { field: "countryId", label: "Country", pattern: patterns.id },
+      { field: "stateId", label: "State", pattern: patterns.id },
+      { field: "cityId", label: "City", pattern: patterns.id },
+      { field: "pinCode", label: "Pin Code", pattern: patterns.pinCode },
+    ];
+
+    addressValidations.forEach(({ field, label, pattern }) => {
+      const value = AddressForm[field as keyof typeof AddressForm];
+      const result = validateField(
+        String(value ?? ""),
+        label,
+        pattern
+      );
+
+      if (result) newErrors[field] = result;
+    });
+
+    if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      if (errorCount === 1) {
-        setErrorMsg(String(Object.values(newErrors)[0]));
-      }
       return;
     }
-    const res = await registerUser(form);
-    if (res) {
-      router.push("/login");
-    }
+
+    const payload = {
+      userName: form.userName.trim(),
+      email: form.email.trim(),
+      mobile: form.mobile.trim(),
+      gender: form.gender,
+      dateOfBirth: formatDateOnly(form.dateOfBirth),
+      firstName: form.firstName.trim(),
+      middleName: form.middleName?.trim() || "",
+      lastName: form.lastName.trim(),
+      addresses: [
+        {
+          addressType: AddressForm.addressType || "Unknown",
+          countryId: Number(AddressForm.countryId),
+          stateId: Number(AddressForm.stateId),
+          cityId: Number(AddressForm.cityId),
+          addressLine1: AddressForm.addressLine1.trim(),
+          addressLine2: AddressForm.addressLine2 || "N/A",
+          pinCode: AddressForm.pinCode.trim(),
+          isPrimary: AddressForm.isPrimary,
+        },
+      ],
+      password: form.password,
+    };
+    const res = await registerUser(payload);
+    if (res) router.push("/login");
   }
 
+  /* ================= UI ================= */
   return (
     <form className="space-y-10 px-2" onSubmit={handleSubmit}>
       {errorMsg && <AppAlert type="error" message={errorMsg} />}
       {successMsg && <AppAlert type="success" message={successMsg} />}
 
       {/* PERSONAL DETAILS */}
+      {/* PERSONAL DETAILS */}
       <section>
         <h3 className="text-xl font-semibold mb-3">Personal Details</h3>
+
+        {/* ROW 1 */}
         <div className="grid md:grid-cols-3 gap-4">
-          {/* FIRST NAME */}
-          <div>
-            <label className="text-sm font-medium">First Name</label>
-            <div className="relative mt-1">
-              <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-              <Input
-                placeholder="John"
-                value={form.firstName}
-                onChange={(e) => updateField("firstName", e.target.value)}
-                className={`pl-10 ${errors.firstName ? "border-red-500" : ""}`}
-              />
-            </div>
-            {errors.firstName && <p className="text-xs text-red-600 mt-1">{errors.firstName}</p>}
-          </div>
+          <Input
+            placeholder="First Name"
+            value={form.firstName}
+            onChange={(e) => updateField("firstName", e.target.value)}
+          />
 
-          {/* MIDDLE NAME */}
-          <div>
-            <label className="text-sm font-medium">Middle Name</label>
-            <Input
-              placeholder="M."
-              value={form.middleName}
-              onChange={(e) => updateField("middleName", e.target.value)}
-            />
-          </div>
+          <Input
+            placeholder="Middle Name"
+            value={form.middleName}
+            onChange={(e) => updateField("middleName", e.target.value)}
+          />
 
-          {/* LAST NAME */}
-          <div>
-            <label className="text-sm font-medium">Last Name</label>
-            <div className="relative mt-1">
-              <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-              <Input
-                placeholder="Doe"
-                value={form.lastName}
-                onChange={(e) => updateField("lastName", e.target.value)}
-                className={`pl-10 ${errors.lastName ? "border-red-500" : ""}`}
-              />
-            </div>
-            {errors.lastName && <p className="text-xs text-red-600 mt-1">{errors.lastName}</p>}
-          </div>
+          <Input
+            placeholder="Last Name"
+            value={form.lastName}
+            onChange={(e) => updateField("lastName", e.target.value)}
+          />
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4">
-          {/* User NAME */}
-          <div>
-            <label className="text-sm font-medium">User Name</label>
-            <div className="relative mt-1">
-              <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-              <Input
-                placeholder="User@123"
-                value={form.userName}
-                onChange={(e) => updateField("userName", e.target.value)}
-                className={`pl-10 ${errors.userName ? "border-red-500" : ""}`}
-              />
-            </div>
-            {errors.userName && <p className="text-xs text-red-600 mt-1">{errors.userName}</p>}
-          </div>
-          {/* LAST NAME */}
-          <div>
-            <div>
-            <label className="text-sm font-medium">Date of Birth</label>
-            <Input
-              type="date"
-              value={form.dateOfBirth}
-              onChange={(e) => updateField("dateOfBirth", e.target.value)}
-              className={`${errors.dateOfBirth ? "border-red-500" : ""}`}
-            />
-            {errors.dateOfBirth && <p className="text-xs text-red-600 mt-1">{errors.dateOfBirth}</p>}
-          </div>
-          </div>
+        {/* ROW 2 */}
+        <div className="grid md:grid-cols-3 gap-4 mt-4">
+          <Input
+            placeholder="User Name"
+            value={form.userName}
+            onChange={(e) => updateField("userName", e.target.value)}
+          />
 
-          {/* GENDER */}
-          <div>
-            <label className="text-sm font-medium">Gender</label>
-            <select
-              className={`w-full py-2 pl-3 pr-3 border rounded-md bg-white ${errors.gender ? "border-red-500" : ""
-                }`}
-              value={form.gender}
-              onChange={(e) => updateField("gender", e.target.value)}
-            >
-              <option value="">Select Gender</option>
-              {gender.map((g: any) => (
-                <option key={g.code} value={g.code}>{g.displayName}</option>
-              ))}
-            </select>
-            {errors.gender && <p className="text-xs text-red-600 mt-1">{errors.gender}</p>}
-          </div>
+          <Input
+            type="date"
+            value={form.dateOfBirth}
+            onChange={(e) => updateField("dateOfBirth", e.target.value)}
+          />
+
+          <select
+            className="w-full border rounded-md p-2"
+            value={form.gender}
+            onChange={(e) => updateField("gender", e.target.value)}
+          >
+            <option value="">Select Gender</option>
+            {gender.map((g) => (
+              <option key={g.code} value={g.code}>
+                {g.displayName}
+              </option>
+            ))}
+          </select>
         </div>
       </section>
 
-      {/* CONTACT DETAILS */}
+      {/* CONTACT */}
       <section>
         <h3 className="text-xl font-semibold mb-3">Contact Details</h3>
-        <div className="space-y-4">
-          {/* EMAIL */}
-          <div className="relative">
-            <label className="text-sm font-medium">Email</label>
-            <Mail className="absolute left-3 top-9 h-5 w-5 text-gray-400" />
-            <Input
-              type="email"
-              value={form.email}
-              onChange={(e) => updateField("email", e.target.value)}
-              className={`pl-10 ${errors.email ? "border-red-500" : ""}`}
-            />
-            {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email}</p>}
-          </div>
-
-          {/* PHONE */}
-          <div className="relative">
-            <label className="text-sm font-medium">Phone Number</label>
-            <Phone className="absolute left-3 top-9 h-5 w-5 text-gray-400" />
-            <Input
-              type="tel"
-              value={form.mobile}
-              onChange={(e) => updateField("mobile", e.target.value)}
-              className={`pl-10 ${errors.mobile ? "border-red-500" : ""}`}
-            />
-            {errors.mobile && <p className="text-xs text-red-600 mt-1">{errors.mobile}</p>}
-          </div>
-        </div>
+        <Input
+          placeholder="Email"
+          value={form.email}
+          onChange={(e) => updateField("email", e.target.value)}
+        />
+        <Input
+          placeholder="Mobile"
+          value={form.mobile}
+          onChange={(e) => updateField("mobile", e.target.value)}
+        />
       </section>
 
-      {/* ADDRESS DETAILS */}
+      {/* ADDRESS */}
       <section>
         <h3 className="text-xl font-semibold mb-3">Address Details</h3>
-        <div className="mt-4">
-          <label className="text-sm font-medium">Full Address</label>
-          <div className="relative mt-1">
-            <MapPin className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+
+        <select
+          value={AddressForm.addressType}
+          onChange={(e) =>
+            updateAddressField("addressType", e.target.value)
+          }
+        >
+          <option value="">Select Address Type</option>
+          {addressTypes.map((t) => (
+            <option key={t.code} value={t.displayName}>
+              {t.displayName}
+            </option>
+          ))}
+        </select>
+
+        {AddressForm.addressType && (
+          <>
             <Input
-              placeholder="Xyz near abc."
-              value={form.address}
-              onChange={(e) => updateField("address", e.target.value)}
-              className={`pl-10 ${errors.address ? "border-red-500" : ""}`}
+              placeholder="Address Line 1"
+              value={AddressForm.addressLine1}
+              onChange={(e) =>
+                updateAddressField("addressLine1", e.target.value)
+              }
             />
-          </div>
-          {errors.address && <p className="text-xs text-red-600 mt-1">{errors.address}</p>}
-        </div>
 
-        <div className="grid md:grid-cols-3 gap-4 mt-4">
-          {/* COUNTRY */}
-          {/* COUNTRY */}
-          <div className="mt-4">
-            <label className="text-sm font-medium">Country</label>
-            <select
-              className={`w-full py-2 pl-3 pr-3 border rounded-md bg-white ${errors.countryId ? "border-red-500" : ""}`}
-              value={form.countryId}
-              // onChange={(e) => updateField("countryId", e.target.value)}
-              onChange={(e) => {
-                const value = e.target.value;
-                setForm((prev) => ({ ...prev, countryId: value, stateId: "", cityId: "", }));
-                setStates([]);
-                setCities([]);
-              }}
-            >
-              <option value="">Select Country</option>
-              {countries.map((c: any) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            {errors.countryId && <p className="text-xs text-red-600 mt-1">{errors.countryId}</p>}
-          </div>
+            <div className="flex gap-4">
+              <select
+                value={AddressForm.countryId}
+                onChange={(e) =>
+                  updateAddressField("countryId", e.target.value)
+                }
+              >
+                <option value="">Country</option>
+                {countries.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
 
-          {/* STATE */}
-          <div className="mt-4">
-            <label className="text-sm font-medium">State</label>
-            <select
-              className={`w-full py-2 pl-3 pr-3 border rounded-md bg-white ${errors.stateId ? "border-red-500" : ""}`}
-              value={form.stateId}
-              //onChange={(e) => updateField("stateId", e.target.value)}
-              onChange={(e) => {
-                const value = e.target.value;
-                setForm((prev) => ({ ...prev, stateId: value, cityId: "", }));
-                setCities([]);
-              }}
-              disabled={!states.length}
-            >
-              <option value="">Select State</option>
-              {states.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-            {errors.stateId && <p className="text-xs text-red-600 mt-1">{errors.stateId}</p>}
-          </div>
+              <select
+                value={AddressForm.stateId}
+                onChange={(e) =>
+                  updateAddressField("stateId", e.target.value)
+                }
+              >
+                <option value="">State</option>
+                {states.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
 
-          {/* CITY */}
-          <div className="mt-4">
-            <label className="text-sm font-medium">City</label>
-            <select
-              className={`w-full py-2 pl-3 pr-3 border rounded-md bg-white ${errors.cityId ? "border-red-500" : ""}`}
-              value={form.cityId}
-              onChange={(e) => updateField("cityId", e.target.value)}
-              disabled={!cities.length}
-            >
-              <option value="">Select City</option>
-              {cities.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            {errors.cityId && <p className="text-xs text-red-600 mt-1">{errors.cityId}</p>}
-          </div>
-        </div>
+              <select
+                value={AddressForm.cityId}
+                onChange={(e) =>
+                  updateAddressField("cityId", e.target.value)
+                }
+              >
+                <option value="">City</option>
+                {cities.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        {/* ZIP */}
-        <div className="mt-4">
-          <label className="text-sm font-medium">Zip Code</label>
-          <Input
-            placeholder="400001"
-            value={form.pinCode}
-            onChange={(e) => updateField("pinCode", e.target.value)}
-            className={`w-full py-2 pl-3 pr-3 border rounded-md ${errors.pinCode ? "border-red-500" : ""
-              }`}
-          />
-          {errors.pinCode && <p className="text-xs text-red-600 mt-1">{errors.pinCode}</p>}
-        </div>
+            <Input
+              placeholder="Pin Code"
+              value={AddressForm.pinCode}
+              onChange={(e) =>
+                updateAddressField("pinCode", e.target.value)
+              }
+            />
+
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={AddressForm.isPrimary}
+                onChange={(e) =>
+                  updateAddressField("isPrimary", e.target.checked)
+                }
+              />
+              Primary Address
+            </label>
+          </>
+        )}
       </section>
 
       {/* SECURITY */}
       <section>
         <h3 className="text-xl font-semibold mb-3">Security</h3>
         <div className="relative">
-          <label className="text-sm font-medium">Password</label>
-          <Lock className="absolute left-3 top-9 h-5 w-5 text-gray-400" />
           <Input
             type={showPassword ? "text" : "password"}
             value={form.password}
             onChange={(e) => updateField("password", e.target.value)}
-            className={`pl-10 pr-12 ${errors.password ? "border-red-500" : ""}`}
-            placeholder="••••••••"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-9 text-gray-500 hover:text-gray-700"
+            className="absolute right-3 top-3"
           >
-            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            {showPassword ? <EyeOff /> : <Eye />}
           </button>
-          {errors.password && <p className="text-xs text-red-600 mt-1">{errors.password}</p>}
         </div>
       </section>
 
-      {/* Submit */}
-      <Button disabled={loading} className="w-full h-12 text-lg">
+      <Button disabled={loading} className="w-full">
         {loading ? "Creating..." : "Create Account"}
       </Button>
 
-      {/* Login Link */}
-      <div className="text-center text-sm text-gray-500">
+      <div className="text-center text-sm">
         Already have an account?{" "}
-        <Link href="/login" className="text-blue-600 font-medium hover:underline">
+        <Link href="/login" className="text-blue-600">
           Login
         </Link>
       </div>
     </form>
   );
+}
+function formatDateOnly(date: string) {
+  if (!date) return "";
+  return new Date(date).toISOString().split("T")[0];
 }

@@ -7,16 +7,15 @@ import Footer from "@/components/layout/Footer";
 import { AuthProvider } from "@/context/AuthContext";
 import AdminSidebar from "@/components/dashboards/AdminSidebar";
 import { useAuthStore } from "@/store/useAuthStore";
+import { Toaster } from "@/components/ui/toaster";
 
 import "./globals.css";
 
 export default function RootLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
-
   const pathname = usePathname();
 
-  // ⭐ AUTO-CLOSE SIDEBAR ON NAVIGATION (MOBILE ONLY)
   useEffect(() => {
     setSidebarOpen(false);
   }, [pathname]);
@@ -29,7 +28,6 @@ export default function RootLayout({ children }) {
 
           {user ? (
             <div className="flex flex-col md:flex-row flex-1">
-
               {/* SIDEBAR */}
               <div
                 className={`
@@ -52,6 +50,9 @@ export default function RootLayout({ children }) {
 
           <Footer />
         </AuthProvider>
+
+        {/* ✅ THIS WAS MISSING */}
+        <Toaster />
       </body>
     </html>
   );
