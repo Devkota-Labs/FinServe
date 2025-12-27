@@ -16,6 +16,7 @@ internal sealed class UserRepository(UserDbContext db) : IUserRepository
     {
         return await db.Users
             .AsNoTracking()
+            .Include(x => x.Addresses)
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .OrderBy(x => x.Id)
@@ -25,6 +26,7 @@ internal sealed class UserRepository(UserDbContext db) : IUserRepository
     {
         return await db.Users
             .AsNoTracking()
+            .Include(x => x.Addresses)
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken).ConfigureAwait(false);
@@ -34,6 +36,7 @@ internal sealed class UserRepository(UserDbContext db) : IUserRepository
     {
         return await db.Users
             .AsNoTracking()
+            .Include(x => x.Addresses)
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(x => x.UserName == userName, cancellationToken).ConfigureAwait(false);
@@ -43,6 +46,7 @@ internal sealed class UserRepository(UserDbContext db) : IUserRepository
     {
         return await db.Users
             .AsNoTracking()
+            .Include(x => x.Addresses)
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(x => x.Email == email, cancellationToken).ConfigureAwait(false);
@@ -52,6 +56,7 @@ internal sealed class UserRepository(UserDbContext db) : IUserRepository
     {
         return await db.Users
             .AsNoTracking()
+            .Include(x => x.Addresses)
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(x => x.Mobile == mobile, cancellationToken).ConfigureAwait(false);
@@ -60,6 +65,7 @@ internal sealed class UserRepository(UserDbContext db) : IUserRepository
     public async Task<User?> GetByUserNameOrEmailAsync(string userNameOrEmail, CancellationToken cancellationToken = default)
         => await db.Users.Where(x => x.Email == userNameOrEmail || x.UserName == userNameOrEmail)
             .AsNoTracking()
+            .Include(x => x.Addresses)
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);

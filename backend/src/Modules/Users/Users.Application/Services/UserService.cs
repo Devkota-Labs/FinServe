@@ -149,18 +149,7 @@ internal sealed class UserService(ILogger logger
         if (entity == null)
             return Result.Fail<UserProfileDto>("User not found.");
 
-        var entities = await repo.GetAddressAsync(id, cancellationToken).ConfigureAwait(false);
-
-        var addressDtos = new List<AddressDto>();
-        foreach (var address in entities)
-        {
-            var addressDto = await MapAddress(address, cancellationToken).ConfigureAwait(false);
-            addressDtos.Add(addressDto);
-        }
-
-        var profile = new UserProfileDto(entity.Id, entity.Email, entity.FirstName, entity.MiddleName, entity.LastName, entity.Mobile, entity.ProfileImageUrl, addressDtos, entity.CreatedTime, entity.LastUpdatedTime);
-
-        return Result.Ok(profile);
+        return Result.Ok(await MapUserProfile(entity, cancellationToken).ConfigureAwait(false));
     }
 
     public async Task<Result<ICollection<AddressDto>>> GetAddressAsync(int userId, CancellationToken cancellationToken)
@@ -245,6 +234,18 @@ internal sealed class UserService(ILogger logger
             address.CityId, cancellationToken).ConfigureAwait(false);
 
         return new(address.Id, address.AddressType, address.AddressLine1, address.AddressLine2, address.CountryId, location.Country, address.StateId, location.State, address.CityId, location.City, address.PinCode, address.IsPrimary);
+    }
+
+    private async Task<UserProfileDto> MapUserProfile(User user, CancellationToken cancellationToken)
+    {
+        var addressDtos = new List<AddressDto>();
+        foreach (var address in user.Addresses)
+        {
+            var addressDto = await MapAddress(address, cancellationToken).ConfigureAwait(false);
+            addressDtos.Add(addressDto);
+        }
+
+        return new UserProfileDto(user.Id, user.Email, user.FirstName, user.MiddleName, user.LastName, user.Mobile, user.ProfileImageUrl, addressDtos, user.CreatedTime, user.LastUpdatedTime);
     }
 
     private async Task<UserDto> Map(User user, CancellationToken cancellationToken)
