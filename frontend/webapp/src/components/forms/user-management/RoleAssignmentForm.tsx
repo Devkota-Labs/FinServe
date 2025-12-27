@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +10,7 @@ import { Search } from "lucide-react";
 import Link from "next/link";
 
 type Role = {
-    id: string;
+    id: number;
     name: string;
 };
 
@@ -44,7 +43,7 @@ export default function RoleAssignmentPage() {
         ]);
     }
 
-    function removeRole(roleId: string) {
+    function removeRole(roleId: number) {
         setSelectedRoles(prev =>
             prev.filter(r => r.id !== roleId)
         );
@@ -58,7 +57,7 @@ export default function RoleAssignmentPage() {
         }
         setErrorMsg("");
         setSuccessMsg("");
-        api.assingRoles(
+        api.assignRoles(
             selectedUserId,
             selectedRoles.map(r => r.id),
         )
@@ -197,7 +196,7 @@ export default function RoleAssignmentPage() {
                 labelKey="firstName"
                 valueKey="id"
                 onSelect={(user) => {
-                    setSelectedUserId(user.firstName);
+                    setSelectedUserId(user.id);
                     setSelectedUserName(user.firstName);
                 }}
             />

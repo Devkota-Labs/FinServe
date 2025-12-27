@@ -1,6 +1,6 @@
 // lib/refreshClient.ts
 import { setAccessToken } from "./auth";
-import { API_BASE_URL } from "./api";
+import { API_BASE_URL } from "./http";
 
 export async function refreshAccessToken(): Promise<string | null> {
   try {
