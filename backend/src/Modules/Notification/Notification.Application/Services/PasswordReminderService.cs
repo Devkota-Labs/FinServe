@@ -33,7 +33,7 @@ internal sealed class PasswordReminderService(
         if (user == null)
             return Result.Fail("User not found.");
 
-        var changePasswordUrl = $"{_frontendOptions.BaseUrl}change-password";
+        var changePasswordUrl = $"{_frontendOptions.BaseUrl}auth/change-password";
 
         //Publish SuspiciousLoginAlert notification
         await eventQueue.EnqueueAsync(

@@ -51,7 +51,7 @@ internal sealed class AdminService(
 
         await userWriteService.ApproveUser(userId, cancellationToken).ConfigureAwait(false);
 
-        var loginUrl = $"{_frontendOptions.BaseUrl}login";
+        var loginUrl = $"{_frontendOptions.BaseUrl}auth/login";
 
         //Raise notification event (AFTER success)
         await eventQueue.EnqueueAsync(
@@ -77,7 +77,7 @@ internal sealed class AdminService(
 
         await userWriteService.UnlockUser(userId, cancellationToken).ConfigureAwait(false);
 
-        var loginUrl = $"{_frontendOptions.BaseUrl}login";
+        var loginUrl = $"{_frontendOptions.BaseUrl}auth/login";
 
         //Publish notification
         await eventQueue.EnqueueAsync(

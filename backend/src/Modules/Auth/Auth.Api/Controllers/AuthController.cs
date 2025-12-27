@@ -64,8 +64,8 @@ public sealed class AuthController(ILogger logger
         var serviceResponse = await authService.VerifyEmailAsync(new VerifyEmailDto(email, token), cancellationToken).ConfigureAwait(false);
 
         var redirectUrl = serviceResponse.Success
-        ? $"{_frontendOptions.BaseUrl}email-verified"
-        : $"{_frontendOptions.BaseUrl}email-verification-failed?reason={serviceResponse.Message}";
+        ? $"{_frontendOptions.BaseUrl}auth/email-verified"
+        : $"{_frontendOptions.BaseUrl}auth/email-verification-failed?reason={serviceResponse.Message}";
 
         return Redirect(redirectUrl);
     }
