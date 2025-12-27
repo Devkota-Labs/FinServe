@@ -314,7 +314,7 @@ internal sealed class AuthService(
                     new Dictionary<string, object?>
                     {
                         ["UserName"] = user.UserName,
-                        ["Token"] = otp.Token,
+                        ["Otp"] = otp.Token,
                         ["ExpiryMinutes"] = _otpOptions.ExpiryMinutes,
                     }),
                 cancellationToken).ConfigureAwait(false);
@@ -669,7 +669,7 @@ internal sealed class AuthService(
                   {
                       ["UserName"] = user.UserName,
                       ["FullName"] = user.FullName,
-                      ["Email"] = user.Email,
+                      ["UserEmail"] = user.Email,
                       ["ApproveLink"] = new Uri(approveUserUrl),
                   }),
               cancellationToken).ConfigureAwait(false);
