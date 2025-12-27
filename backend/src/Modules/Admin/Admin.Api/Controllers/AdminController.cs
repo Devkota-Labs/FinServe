@@ -21,6 +21,14 @@ public sealed class AdminController(ILogger logger, IAdminService adminService)
         return FromResult(serviceResponse);
     }
 
+    [HttpGet("locked-users")]
+    public async Task<IActionResult> GetLockedUsers(CancellationToken cancellationToken)
+    {
+        var serviceResponse = await adminService.GetLockedUsersAsync(cancellationToken).ConfigureAwait(false);
+
+        return FromResult(serviceResponse);
+    }
+
     [HttpPatch("approve/{userId}")]
     public async Task<IActionResult> ApproveUser(int userId, CancellationToken cancellationToken)
     {

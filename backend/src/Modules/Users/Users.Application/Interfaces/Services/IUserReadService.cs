@@ -1,4 +1,5 @@
 ﻿using Shared.Application.Dtos;
+using Users.Application.Dtos.User;
 
 namespace Users.Application.Interfaces.Services;
 
@@ -15,4 +16,5 @@ public interface IUserReadService
     Task<IEnumerable<AuthUserDto>> GetUsersWithExpiringPasswordsAsync(TimeSpan within, CancellationToken cancellationToken = default);
 
     Task<ICollection<PendingUserDto>> GetUnApprovedUsers(CancellationToken cancellationToken = default);
+    Task<ICollection<LockedUserDto>> GetLockedUsers(CancellationToken cancellationToken = default);
 }

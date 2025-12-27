@@ -9,6 +9,7 @@ using Shared.Application.Results;
 using Shared.Common.Services;
 using Shared.Infrastructure.Background;
 using Shared.Infrastructure.Options;
+using Users.Application.Dtos.User;
 using Users.Application.Interfaces.Services;
 
 namespace Admin.Application.Services;
@@ -37,6 +38,23 @@ internal sealed class AdminService(
         if (pendingUsers.Count == 0)
         {
             return Result.Ok<ICollection<PendingUserDto>>("No unapproved users found.", null);
+        }
+
+        return Result.Ok(pendingUsers);
+    }
+
+    public async Task<Result<ICollection<LockedUserDto>>> GetLockedUsersAsync(CancellationToken cancellationToken = default)
+    {
+        var pendingUsers = await userReadService.GetLockedUsers(cancellationToken).ConfigureAwait(false);
+
+        if (pendingUsers == null)
+        {
+            return Result.Fail<ICollection<LockedUserDto>>("Failed to fetch locked users.");
+        }
+
+        if (pendingUsers.Count == 0)
+        {
+            return Result.Ok<ICollection<LockedUserDto>>("No locked users found.", null);
         }
 
         return Result.Ok(pendingUsers);

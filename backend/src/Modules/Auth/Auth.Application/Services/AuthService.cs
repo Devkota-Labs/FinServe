@@ -371,7 +371,7 @@ internal sealed class AuthService(
     // ======================================================
     public async Task<(string? RefreshToken, Result<LoginResponseDto>)> LoginAsync(LoginDto dto, CancellationToken cancellationToken)
     {
-        var user = await usersRead.GetByUserNameOrEmailAsync(dto.Email, cancellationToken).ConfigureAwait(false);
+        var user = await usersRead.GetByUserNameOrEmailAsync(dto.EmailOrUserName, cancellationToken).ConfigureAwait(false);
 
         if (user is null)
             return (null, Result.Fail<LoginResponseDto>("User not found."));

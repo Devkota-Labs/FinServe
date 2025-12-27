@@ -4,6 +4,7 @@ using Shared.Application.Dtos;
 using Shared.Common.Services;
 using Shared.Common.Utils;
 using System.Linq.Expressions;
+using Users.Application.Dtos.User;
 using Users.Application.Interfaces.Services;
 using Users.Domain.Entities;
 using Users.Infrastructure.Db;
@@ -86,6 +87,15 @@ internal sealed class UserReadService(ILogger logger, UserDbContext userDbContex
             .ToListAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<ICollection<LockedUserDto>> GetLockedUsers(CancellationToken cancellationToken = default)
+    {
+        return await userDbContext.Users
+            .AsNoTracking()
+            .Where(u => u.LockoutEndAt.HasValue && u.LockoutEndAt.Value > DateTimeUtil.Now)
+            .Select(ToLockedUser())
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     // Mapping Expression
     private static Expression<Func<User, AuthUserDto>> ToAuthUser()
         => x => new AuthUserDto(x.UserRoles != null ? x.UserRoles.Select(r => r.Role.Name).ToList() : new List<string>())
@@ -109,4 +119,7 @@ internal sealed class UserReadService(ILogger logger, UserDbContext userDbContex
 
     private static Expression<Func<User, PendingUserDto>> ToPendingUser()
         => x => new PendingUserDto(x.Id, x.UserName, x.FullName, x.Email, x.Mobile, x.IsApproved, x.EmailVerified, x.MobileVerified, x.IsActive, x.CreatedTime);
+
+    private static Expression<Func<User, LockedUserDto>> ToLockedUser()
+        => x => new LockedUserDto(x.Id, x.FullName, x.Email, x.Mobile, x.LockoutEndAt.GetValueOrDefault());
 }

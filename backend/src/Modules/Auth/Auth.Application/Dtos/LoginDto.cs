@@ -1,3 +1,3 @@
 ﻿namespace Auth.Application.Dtos;
 
-public sealed record LoginDto(string Email, string Password, string? TotpCode);
+public sealed record LoginDto(string EmailOrUserName, string Password, string? TotpCode);
