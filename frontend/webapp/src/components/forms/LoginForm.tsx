@@ -18,7 +18,7 @@ export default function LoginForm() {
   const { errorMsg, setErrorMsg, successMsg, setSuccessMsg,alertMsg,setAlertMsg } = useFormMessages();
   const { login, loading } = useLogin(setErrorMsg, setSuccessMsg,setAlertMsg);
   const [showPassword, setShowPassword] = useState(false);
-  const [form, setForm] = useState({ login: "", password: "" });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
 
