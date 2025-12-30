@@ -82,7 +82,7 @@ export default function LoginForm() {
           <Input
             type="email"
             placeholder="you@example.com"
-            value={form.email}
+            value={form.Login}
             onChange={(e) => updateField("email", e.target.value)}
             disabled={loading}
             className={`pl-10 ${errors.email ? "border-red-500" : ""}`}
