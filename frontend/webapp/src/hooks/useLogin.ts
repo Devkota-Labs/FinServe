@@ -17,12 +17,12 @@ export function useLogin(
   const [loading, setLoading] = useState(false);
   const setUser = useAuthStore((state) => state.setUser);
 
-  async function login(Login: string, password: string) {
+  async function login(email: string, password: string) {
     setLoading(true);
     setErrorMsg("");
 
     try {
-      const response = await api.login({ Login, password });
+      const response = await api.login({ login:email, password });
 
       const { success, data, message } = response;
 
