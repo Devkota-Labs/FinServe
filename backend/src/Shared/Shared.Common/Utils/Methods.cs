@@ -18,4 +18,8 @@ public static class Methods
     {
         return Encoding.ASCII.GetString(byteArray, offset, length).Trim('\0', ' ');
     }
+    public static string ListToString<T>(IEnumerable<T>? list, string separator = ", ")
+    {
+        return list == null ? string.Empty : string.Join(separator, list);
+    }
 }

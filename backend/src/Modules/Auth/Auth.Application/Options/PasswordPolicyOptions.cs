@@ -10,10 +10,11 @@ public sealed class PasswordPolicyOptions : BaseServiceConfig
     public bool RequireUppercase { get; init; } = true;
     public bool RequireLowercase { get; init; } = true;
     public bool RequireDigit { get; init; } = true;
-    public bool RequireSpecial { get; init; } = true;
-    public bool NoWhitespace { get; init; } = true;
+    public bool RequireSpecialCharacter { get; init; } = true;
+    public string? SpecialCharacters { get; init; }
+    public bool AllowedWhitespace { get; init; }
     public override string ToString()
     {
-        return Methods.GetToString(base.ToString(), MinLength, RequireUppercase, RequireLowercase, RequireDigit, RequireSpecial, NoWhitespace);
+        return Methods.GetToString(base.ToString(), MinLength, RequireUppercase, RequireLowercase, RequireDigit, RequireSpecialCharacter, SpecialCharacters, AllowedWhitespace);
     }
 }

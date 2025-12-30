@@ -371,7 +371,7 @@ internal sealed class AuthService(
     // ======================================================
     public async Task<(string? RefreshToken, Result<LoginResponseDto>)> LoginAsync(LoginDto dto, CancellationToken cancellationToken)
     {
-        var user = await usersRead.GetByUserNameOrEmailAsync(dto.EmailOrUserName, cancellationToken).ConfigureAwait(false);
+        var user = await usersRead.GetByUserNameOrEmailAsync(dto.Login, cancellationToken).ConfigureAwait(false);
 
         if (user is null)
             return (null, Result.Fail<LoginResponseDto>("User not found."));
@@ -615,7 +615,7 @@ internal sealed class AuthService(
         if (user is null)
             return Result.Fail("User not found.");
 
-        if (!passwordHasher.Verify(user.PasswordHash, dto.OldPassword))
+        if (!passwordHasher.Verify(user.PasswordHash, dto.CurrentPassword))
             return Result.Fail("Incorrect current password.");
 
         var (valid, message) = passwordPolicyService.ValidatePassword(dto.NewPassword);
@@ -643,6 +643,9 @@ internal sealed class AuthService(
                   ["Timestamp"] = DateTimeUtil.Now.ToString("f", Constants.IFormatProvider),
               }),
           cancellationToken).ConfigureAwait(false);
+
+        //Revoke all sessions
+        await refreshTokenService.RevokeAllAsync(user.Id, cancellationToken).ConfigureAwait(false);
 
         return Result.Ok("Password Changed successful.");
     }

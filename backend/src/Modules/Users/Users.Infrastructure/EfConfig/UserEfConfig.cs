@@ -14,6 +14,7 @@ internal sealed class UserEfConfig : IEntityTypeConfiguration<User>
         builder.ToTable("Users");
         builder.HasKey(x => x.Id);
         builder.Property(u => u.Email).IsRequired().HasMaxLength(200);
+        builder.Property(u => u.UserName).IsRequired().HasMaxLength(20);
         builder.Property(u => u.Gender)
             .HasConversion<string>()
             .HasMaxLength(50)
@@ -22,7 +23,7 @@ internal sealed class UserEfConfig : IEntityTypeConfiguration<User>
         builder.HasMany(u => u.UserRoles)
                .WithOne(ur => ur.User)
                .HasForeignKey(ur => ur.UserId)
-               .OnDelete(DeleteBehavior.Restrict);
+               .OnDelete(DeleteBehavior.Cascade);
 
         // Relationships
         builder.HasMany(u => u.Addresses)
@@ -35,9 +36,9 @@ internal sealed class UserEfConfig : IEntityTypeConfiguration<User>
         builder.Navigation(u => u.Addresses)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        builder.HasIndex(u => u.UserName);
-        builder.HasIndex(u => u.Email);
-        builder.HasIndex(u => u.Mobile);
+        builder.HasIndex(u => u.UserName).IsUnique();
+        builder.HasIndex(u => u.Email).IsUnique();
+        builder.HasIndex(u => u.Mobile).IsUnique();
 
         UserSeeder.Seed(builder);
     }

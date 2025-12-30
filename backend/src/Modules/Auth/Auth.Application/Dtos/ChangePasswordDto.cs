@@ -1,3 +1,3 @@
 ﻿namespace Auth.Application.Dtos;
 
-public sealed record ChangePasswordDto(string OldPassword, string NewPassword);
+public sealed record ChangePasswordDto(string CurrentPassword, string NewPassword);

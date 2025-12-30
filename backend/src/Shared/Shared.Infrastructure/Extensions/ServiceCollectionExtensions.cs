@@ -20,7 +20,7 @@ public static class ServiceCollectionExtensions
         // register IHttpContextAccessor if needed for auditing
         services.AddHttpContextAccessor();
 
-        services.AddScoped<IEmailService, SmtpEmailService>();        
+        services.AddScoped<IEmailService, SmtpEmailService>();
         services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
         services.AddScoped<ISmsSender, TestSmsSender>();
         services.AddScoped<IAppUrlProvider, AppUrlProvider>();

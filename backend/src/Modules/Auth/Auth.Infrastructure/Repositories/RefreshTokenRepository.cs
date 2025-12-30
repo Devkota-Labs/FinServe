@@ -39,13 +39,17 @@ internal sealed class RefreshTokenRepository(AuthDbContext db) : IRefreshTokenRe
 
     public async Task RevokeAllAsync(int userId, CancellationToken cancellationToken = default)
     {
-        await db.RefreshTokens
-            .AsNoTracking()
-            .Where(rt => rt.UserId == userId && !rt.IsRevoked)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(r => r.IsRevoked, true)
-                .SetProperty(r => r.RevokedAt, DateTime.UtcNow),
-                cancellationToken).ConfigureAwait(false);
+        // Revoke old tokens
+        var existing = await db.RefreshTokens
+            .Where(x => x.UserId == userId && !x.RevokedAt.HasValue)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+
+        foreach (var t in existing)
+        {
+            t.RevokedAt = DateTimeUtil.Now;
+        }
+
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task AddAsync(RefreshToken token, CancellationToken cancellationToken = default)

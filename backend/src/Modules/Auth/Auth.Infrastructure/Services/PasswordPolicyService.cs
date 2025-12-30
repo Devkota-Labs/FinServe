@@ -1,5 +1,7 @@
 ﻿using Auth.Application.Options;
 using Microsoft.Extensions.Options;
+using Shared.Application.Dtos;
+using Shared.Application.Results;
 using System.Text.RegularExpressions;
 
 namespace Auth.Infrastructure.Services;
@@ -8,6 +10,12 @@ internal sealed class PasswordPolicyService(IOptions<PasswordPolicyOptions> pass
     : Shared.Security.IPasswordPolicyService
 {
     private readonly PasswordPolicyOptions _passwordPolicyOptions = passwordPolicyOptions.Value;
+
+    public Result<PasswordPolicyDto> GetPasswordPolicy()
+    {
+        return Result.Ok(new PasswordPolicyDto(_passwordPolicyOptions.MinLength, _passwordPolicyOptions.RequireUppercase, _passwordPolicyOptions.RequireLowercase, _passwordPolicyOptions.RequireDigit,
+            _passwordPolicyOptions.RequireSpecialCharacter, _passwordPolicyOptions.SpecialCharacters, _passwordPolicyOptions.AllowedWhitespace));
+    }
 
     public (bool IsValid, string Message) ValidatePassword(string password)
     {
@@ -26,10 +34,13 @@ internal sealed class PasswordPolicyService(IOptions<PasswordPolicyOptions> pass
         if (_passwordPolicyOptions.RequireDigit && !Regex.IsMatch(password, @"[0-9]"))
             return (false, "Password must contain at least one digit.");
 
-        if (_passwordPolicyOptions.RequireSpecial && !Regex.IsMatch(password, @"[!@#$%^&*(),.?""':{}|<>_\-+=]"))
+        var escaped = Regex.Escape(_passwordPolicyOptions.SpecialCharacters ?? @"[!@#$%^&*(),.?""':{}|<>_\-+=]");
+        var regex = new Regex($"[{escaped}]");
+
+        if (_passwordPolicyOptions.RequireSpecialCharacter && !regex.IsMatch(password))
             return (false, "Password must contain at least one special character.");
 
-        if (_passwordPolicyOptions.NoWhitespace && Regex.IsMatch(password, @"\s"))
+        if (!_passwordPolicyOptions.AllowedWhitespace && Regex.IsMatch(password, @"\s"))
             return (false, "Password must not contain spaces.");
 
         return (true, "Password meets complexity requirements.");

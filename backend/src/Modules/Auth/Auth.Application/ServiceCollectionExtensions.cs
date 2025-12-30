@@ -14,7 +14,7 @@ public static class ServiceCollectionExtensions
         services.AddOptions<PasswordPolicyOptions>().BindConfiguration($"{appConfigSectionName}:{SecurityOptions.SectionName}:{PasswordPolicyOptions.SectionName}").ValidateOnStart();
         services.AddOptions<AdminOptions>().BindConfiguration($"{appConfigSectionName}:{AdminOptions.SectionName}").ValidateOnStart();
         services.AddOptions<ApiOptions>().BindConfiguration($"{appConfigSectionName}:{ApiOptions.SectionName}").ValidateOnStart();
-        services.AddOptions<ReservedUsernameOptions>().BindConfiguration($"{appConfigSectionName}:{ReservedUsernameOptions.SectionName}").ValidateOnStart();
+        services.AddOptions<UserNamePolicyOptions>().BindConfiguration($"{appConfigSectionName}:{UserNamePolicyOptions.SectionName}").ValidateOnStart();
 
         //Configure Services
         services.AddScoped<IAuthService, AuthService>();

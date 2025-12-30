@@ -12,6 +12,7 @@ using Shared.Application.Api;
 using Shared.Application.Results;
 using Shared.Common.Utils;
 using Shared.Infrastructure.Options;
+using Shared.Security;
 
 namespace Auth.Api.Controllers;
 
@@ -21,7 +22,9 @@ public sealed class AuthController(
     IAuthService authService,
     IPasswordReminderService passwordReminderService,
     IOptions<FrontendOptions> frontendOption,
-    IUserNameAvailabilityService userNameAvailabilityService
+    IUserNameAvailabilityService userNameAvailabilityService,
+    IUserNamePolicyService userNamePolicyService,
+    IPasswordPolicyService passwordPolicyService
     )
     : BaseApiController(logger.ForContext<AuthController>())
 {
@@ -206,6 +209,22 @@ public sealed class AuthController(
     public async Task<IActionResult> CheckUserNameAvailabilty([FromBody] CheckUserNameDto checkUserNameDto, CancellationToken cancellationToken)
     {
         var serviceResponse = await userNameAvailabilityService.IsAvailableAsync(checkUserNameDto.UserName, 5, cancellationToken).ConfigureAwait(false);
+
+        return FromResult(serviceResponse);
+    }
+
+    [HttpGet("password-policy")]
+    public IActionResult PasswordPolicy()
+    {
+        var serviceResponse = passwordPolicyService.GetPasswordPolicy();
+
+        return FromResult(serviceResponse);
+    }
+
+    [HttpGet("username-policy")]
+    public IActionResult UserNamePolicy()
+    {
+        var serviceResponse = userNamePolicyService.GetUserNamePolicy();
 
         return FromResult(serviceResponse);
     }
