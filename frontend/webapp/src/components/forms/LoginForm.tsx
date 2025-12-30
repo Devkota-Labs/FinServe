@@ -55,7 +55,7 @@ export default function LoginForm() {
       return;
     }
 
-    const roles=await login(form.email, form.password);
+    const roles=await login(form.Login, form.password);
     if(roles)
     {
       const isAdmin = Array.isArray(roles) && roles.length > 0 && roles.includes("Admin");
