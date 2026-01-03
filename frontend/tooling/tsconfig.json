@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./apps/web" },
+    { "path": "./packages/app-core" }
+  ],
+  "extends": "./tooling/tsconfig/base.json"
+}

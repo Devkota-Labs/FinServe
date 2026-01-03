@@ -1,0 +1,5 @@
+packages:
+  # - "apps/mobile-native" Temporarily disable React Native app
+  - "apps/web"
+  - "apps/mobile"
+  - "packages/*"
