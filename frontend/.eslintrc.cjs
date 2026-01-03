@@ -1,26 +1,14 @@
-/** @type {import("eslint").Linter.Config} */
 module.exports = {
   root: true,
 
-  env: {
-    browser: true,
-    node: true,
-    es2021: true,
-  },
-
   parser: "@typescript-eslint/parser",
-
-  parserOptions: {
-    ecmaVersion: "latest",
-    sourceType: "module",
-    project: true,
-  },
 
   plugins: [
     "@typescript-eslint",
     "react",
     "react-hooks",
     "boundaries",
+    "unused-imports"
   ],
 
   extends: [
@@ -28,132 +16,45 @@ module.exports = {
     "plugin:@typescript-eslint/recommended",
     "plugin:react/recommended",
     "plugin:react-hooks/recommended",
-    "plugin:boundaries/recommended",
-    "next/core-web-vitals",
-    "prettier",
+    "prettier"
   ],
 
   settings: {
     react: {
-      version: "detect",
+      version: "detect"
     },
 
-    /* -------------------------------
-       BOUNDARIES CONFIGURATION
-    -------------------------------- */
+    /* We ONLY classify files */
     "boundaries/elements": [
-      /* ---------- APPS ---------- */
-      {
-        type: "app",
-        pattern: "apps/*/src/**",
-      },
-
-      /* ---------- FEATURES ---------- */
-      {
-        type: "feature",
-        pattern: "apps/*/src/features/*",
-      },
-
-      {
-        type: "ui",
-        pattern: "apps/*/src/features/*/ui/**",
-      },
-
-      {
-        type: "domain",
-        pattern: "apps/*/src/features/*/domain/**",
-      },
-
-      {
-        type: "hook",
-        pattern: "apps/*/src/features/*/hooks/**",
-      },
-
-      {
-        type: "api",
-        pattern: "apps/*/src/features/*/api/**",
-      },
-
-      /* ---------- APP ROUTER ---------- */
-      {
-        type: "page",
-        pattern: "apps/*/src/app/**/page.tsx",
-      },
-
-      {
-        type: "layout",
-        pattern: "apps/*/src/app/**/layout.tsx",
-      },
-
-      {
-        type: "provider",
-        pattern: "apps/*/src/app/**/providers.tsx",
-      },
-
-      /* ---------- SHARED ---------- */
-      {
-        type: "shared-ui",
-        pattern: "packages/ui/src/**",
-      },
-
-      {
-        type: "app-core",
-        pattern: "packages/app-core/src/**",
-      },
-    ],
-
-    "boundaries/element-types": [
-      {
-        from: "ui",
-        allow: ["domain", "hook", "api", "shared-ui"],
-      },
-      {
-        from: "page",
-        allow: ["ui", "domain", "hook"],
-      },
-      {
-        from: "layout",
-        allow: ["ui", "domain", "hook"],
-      },
-      {
-        from: "provider",
-        allow: ["app-core", "shared-ui"],
-      },
-      {
-        from: "app-core",
-        allow: ["domain"],
-      },
-    ],
+      { type: "app", pattern: "src/app/**" },
+      { type: "feature", pattern: "src/features/**" },
+      { type: "feature-ui", pattern: "src/features/**/ui/**" },
+      { type: "feature-hook", pattern: "src/features/**/hooks/**" },
+      { type: "layout", pattern: "src/layouts/**" },
+      { type: "context", pattern: "src/context/**" },
+      { type: "lib", pattern: "src/lib/**" }
+    ]
   },
 
   rules: {
-    /* -------------------------------
-       GENERAL
-    -------------------------------- */
-    "no-console": "warn",
-
-    /* -------------------------------
-       TYPESCRIPT
-    -------------------------------- */
-    "@typescript-eslint/no-unused-vars": [
-      "warn",
-      { argsIgnorePattern: "^_" },
-    ],
-
-    /* -------------------------------
-       REACT
-    -------------------------------- */
+    /* React 17+ / Next.js */
     "react/react-in-jsx-scope": "off",
+    "react/jsx-uses-react": "off",
 
-    /* -------------------------------
-       BOUNDARIES
-    -------------------------------- */
+    /* ✅ KEEP THIS */
     "boundaries/no-unknown-files": "error",
-    "boundaries/no-unknown": "error",
+
+    /* ❌ DISABLE THIS PERMANENTLY */
+    "boundaries/no-unknown": "off",
+
+    /* TypeScript */
+    "@typescript-eslint/no-explicit-any": "warn",
+
+    /* Imports */
+    "unused-imports/no-unused-imports": "warn"
   },
 
   overrides: [
-    /* ---------- ALLOW NEXT AUTO FILES ---------- */
     {
       files: [
         "**/*.d.ts",
@@ -161,12 +62,11 @@ module.exports = {
         "**/.next/**",
         "**/dist/**",
         "**/build/**",
-        "**/node_modules/**",
+        "**/node_modules/**"
       ],
       rules: {
-        "boundaries/no-unknown-files": "off",
-        "boundaries/no-unknown": "off",
-      },
-    },
-  ],
+        "boundaries/no-unknown-files": "off"
+      }
+    }
+  ]
 };

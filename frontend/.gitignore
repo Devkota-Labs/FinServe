@@ -21,4 +21,7 @@ Thumbs.db
 .vscode/
 .idea/
 
+# cache
+.turbo
+
 coverage
