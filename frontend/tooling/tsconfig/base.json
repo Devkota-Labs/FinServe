@@ -15,7 +15,10 @@
     "baseUrl": ".",
     "paths": {
       "@apps/*": ["apps/*"],
-      "@packages/*": ["packages/*"]
+      "@packages/*": ["packages/*"],
+      "@packages/ui": ["packages/ui/src"],
+      "@packages/app-core": ["packages/app-core/src"],
+      "@packages/app-core/*": ["packages/app-core/src/*"]
     }
   }
 }

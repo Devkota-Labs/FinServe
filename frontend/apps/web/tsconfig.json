@@ -18,8 +18,8 @@
     "src",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
-, "../../packages/app-core/src/features/auth/context"  ],
+    ".next/types/**/*.ts",
+     "../../packages/app-core/src/features/auth/context"  ],
   "exclude": [
     "node_modules"
   ]
