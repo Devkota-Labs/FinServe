@@ -1,0 +1,16 @@
+{
+  "name": "@apps/mobile-native",
+  "private": true,
+  "scripts": {
+    "start": "react-native start",
+    "android": "react-native run-android",
+    "ios": "react-native run-ios"
+  },
+  "dependencies": {
+    "react": "^18.3.0",
+    "react-native": "^0.74.0",
+    "@react-navigation/native": "^6.2.0",
+    "@react-navigation/native-stack": "^6.9.0",
+    "@packages/app-core": "workspace:*"
+  }
+}
