@@ -1,19 +1,20 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { PublicLayout } from '@packages/ui';
+// import { useRouter } from 'next/navigation';
+import { PublicLayout } from "../../components/layouts/PublicLayout";
 
 export default function PublicRootLayout({
   children,
 }: {
   children: React.ReactNode;
-}) 
-{
-  const router = useRouter();
+}) {
+  // const router = useRouter();
 
   return (
-    <PublicLayout onLoginClick={() => router.push("/login")}>
-      {children}
-    </PublicLayout>
+    <div>
+      <PublicLayout>
+        {children}
+      </PublicLayout>
+    </div>
   );
 }

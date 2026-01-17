@@ -1,9 +1,9 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "@packages/ui/styles/tailwind.css";
 
-@layer base {
-  :root {
+/* ===============================
+   Design tokens (APP OWNED)
+   =============================== */
+:root {
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
@@ -55,16 +55,16 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%
-  }
-}
+  };
 
-@layer base {
-  * {
-    @apply border-border;
-  }
+/* @layer base {
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
-}
+} */
 
-
+/* NO @apply here */
+/* body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+} */
